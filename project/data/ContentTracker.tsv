@@ -1,0 +1,27 @@
+LAMF · CONTENT TRACKER — AD COPY STATUS DASHBOARD										
+Track copy status per ad unit · Assign to team members · Manage review and approval workflow										
+📊 TOTALS  |  Not Started: =COUNTIF(H6:H50,"Not Started")  |  In Progress: =COUNTIF(H6:H50,"In Progress")  |  Review: =COUNTIF(H6:H50,"Review")  |  Approved: =COUNTIF(H6:H50,"Approved")  |  Live: =COUNTIF(H6:H50,"Live")										
+#	Channel	Campaign Type	Campaign Name	Ad Unit / Element	Assigned To	Due Date	Status	Reviewer	Review Date	Notes
+1	Google Search	RSA	LAMF — Personal Loan Intercept	Headlines (15) + Descriptions (4)	104					
+2	Google Search	RSA	LAMF — Instant Cash Intercept	Headlines (15) + Descriptions (4)	104					
+3	Google Search	RSA	LAMF — Emergency Cash Intercept	Headlines (15) + Descriptions (4)	104					
+4	Google Search	RSA	LAMF — Urgent Money Intercept	Headlines (15) + Descriptions (4)	104					
+5	Google Search	RSA	LAMF — Low Interest Loan Intercept	Headlines (15) + Descriptions (4)	104					
+6	Google Search	RSA	LAMF — Wealth Preservation	Headlines (15) + Descriptions (4)	104					
+7	Google Search	Extensions	All Campaigns	Sitelinks (8) + Callouts (20)	104					
+8	Google Search	Extensions	All Campaigns	Structured Snippets + Promos	104					
+9	Google Display	Responsive	LAMF — Display Awareness	Short HLs (10) + Long HLs (5) + Descs (5)	104					
+10	Google PMax	Performance Max	LAMF — PMax	All asset groups — HLs + Descs + Images	104					
+11	Google Demand Gen	Demand Gen	LAMF — DemandGen	HLs (5) + Descs (5) per variation	104					
+12	Meta Facebook	Lead Gen	LAMF — FB Lead Gen	Primary Text V1-V5 + HL V1-V5	104					
+13	Meta Facebook	Conversions	LAMF — FB Retargeting	Primary Text V1-V5 + HL V1-V5	104					
+14	Meta Facebook	Awareness	LAMF — FB Awareness	Primary Text V1-V5 + HL V1-V5	104					
+15	Meta Instagram	Stories	LAMF — IG Stories	Story overlay text (3 variations)	104					
+16	Microsoft Bing	RSA	LAMF — Bing Personal Loan	Headlines (15) + Descriptions (4)	104					
+17	Microsoft Bing	RSA	LAMF — Bing Emergency	Headlines (15) + Descriptions (4)	104					
+WORKFLOW GUIDE										
+1	1. Not Started	723								
+2	2. In Progress	725								
+3	3. Review	727								
+4	4. Approved	729								
+5	5. Live	731								

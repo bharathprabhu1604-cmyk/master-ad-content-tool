@@ -1,0 +1,21 @@
+LAMF · CAMPAIGN REQUIREMENTS DASHBOARD													
+Fill BLUE cells to define campaign requirements · Content team writes to these specs · Marketer edits #HLs and #Descs per ad group													
+💡 TIP: Edit columns G (# Headlines), H (# Descriptions), I (# Ads) to control output from content team. Status updates auto-colour.													
+#	Channel	Campaign Type	Campaign Name	Ad Group / Ad Set	Theme	HLs	Descs	Ads	Deadline	Assigned To	Status	Priority	Notes
+1	Google Search	RSA	LAMF — Personal Loan Intercept	Personal Loan	Personal Loan Alternatives	15	4	1	104			High	Intercept personal loan searches
+2	Google Search	RSA	LAMF — Instant Cash Intercept	Instant / Quick Cash	Instant Cash	15	4	1	104			High	Intercept instant cash searches
+3	Google Search	RSA	LAMF — Emergency Cash Intercept	Emergency Cash	Emergency Cash	15	4	1	104			High	Intercept emergency cash searches
+4	Google Search	RSA	LAMF — Urgent Money Intercept	Urgent Money Need	Urgent Money	15	4	1	104			Medium	Intercept urgent money searches
+5	Google Search	RSA	LAMF — Low Interest Loan Intercept	Low-Interest Loan	Low-Rate Loan	15	4	1	104			High	Intercept low-rate loan searches
+6	Google Search	RSA	LAMF — Wealth Preservation	Investor Mindset	Wealth / Investor	15	4	1	104			Medium	Target MF investors
+7	Google Display	Responsive	LAMF — Display Awareness	MF Investors	LAMF Awareness	10	5	3	104			Medium	Broad MF investor audience
+8	Google PMax	Performance Max	LAMF — PMax All Audiences	All Audiences	Full Funnel	15	5	5	104			High	All assets for PMax
+9	Google Demand Gen	Demand Gen	LAMF — DemandGen	Investor Audiences	Investor Awareness	5	5	3	104			Low	YouTube + Discover
+10	Meta Facebook	Lead Gen	LAMF — FB Lead Gen	Lookalike — MF Investors	Lead Generation	5	5	3	104			High	Lead gen from MF LLA
+11	Meta Facebook	Conversions	LAMF — FB Retargeting	Retargeting — Visitors	Retargeting	5	5	3	104			High	Retarget site visitors
+12	Meta Facebook	Awareness	LAMF — FB Brand Awareness	Broad Investor Demo	Brand Awareness	5	5	5	104			Medium	Awareness — investor demo
+13	Meta Instagram	Stories	LAMF — IG Stories	Millennial Investors	Story Format	3	3	3	104			Medium	Instagram Story ads
+14	Microsoft Bing	RSA	LAMF — Bing Personal Loan	Personal Loan	Personal Loan Alternatives	15	4	1	104			Medium	Bing personal loan intercept
+15	Microsoft Bing	RSA	LAMF — Bing Emergency	Emergency Cash	Emergency Cash	15	4	1	104			Low	Bing emergency cash
+TOTALS													
+Total Campaigns	15			175		168			176		65		

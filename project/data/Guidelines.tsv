@@ -1,0 +1,51 @@
+AD COPY GUIDELINES — CHANNEL + CAMPAIGN REFERENCE							
+Use the dropdown below to filter by channel | Character limits, asset counts, best practices, and compliance rules							
+SELECT CHANNEL →	168		
+💡 All guidelines shown below	527						
+COMPLETE AD COPY GUIDELINES — ALL CHANNELS							
+Channel	Campaign Type	Asset	Min. Count	Max. Count	Char Limit	Best Practice / Notes
+Google Search	RSA	Headline	3	15	30	Pin 1=intent, Pin 2=LAMF rate, Pin 3=CTA. Use all 15 for best coverage.
+Google Search	RSA	Description	1	4	90	Pin 1=rate reframe, Pin 2=trust+CTA. Aim 80-85 chars.
+Google Search	RSA	Display URL Path	0	2	15	Each path ≤15 chars. Use readable keywords e.g. /lamf /apply-now
+Google Search	RSA	Sitelink Title	4	20	25	Minimum 4 sitelinks. Use keyword-rich, action-oriented text.
+Google Search	RSA	Sitelink Desc	0	2	35	Desc lines are optional but improve CTR. Two desc lines per sitelink.
+Google Search	RSA	Callout Extension	4	20	25	Minimum 4. Use specific USPs not generic phrases.
+Google Search	RSA	Structured Snippet	1	999	25	Each value ≤25 chars. Min 3 values per header.
+Google Display	Responsive	Short Headline	5	15	30	Min 5 required. Google combines automatically. Include brand name.
+Google Display	Responsive	Long Headline	1	5	90	At least 1 required. Make sense standalone — can be only text shown.
+Google Display	Responsive	Description	2	5	90	Min 2 required. Don't repeat long headline content.
+Google Display	Responsive	Business Name	1	1	25	Must match brand. No trademarked terms of competitors.
+Google PMax	Performance Max	Headline	3	15	30	Same limits as RSA. Min 3, max 15. Aim for 10+.
+Google PMax	Performance Max	Long Headline	1	5	90	Min 1 required. Max 5.
+Google PMax	Performance Max	Description	2	5	90	Min 2, max 5. First 2 are required.
+Google PMax	Performance Max	Business Name	1	1	25	Required. Must match landing page.
+Google PMax	Performance Max	Image (Landscape)	1	20	1200×628	1.91:1 ratio. Min 600×314. Safe zone: keep text away from edges.
+Google PMax	Performance Max	Image (Square)	1	20	1200×1200	1:1 ratio. Also used in Gmail and Discovery.
+Google Demand Gen	Demand Gen	Headline	1	5	40	More chars than RSA. Be compelling — this is interruption media.
+Google Demand Gen	Demand Gen	Description	1	5	90	Focus on value prop. YouTube audience — be inspiring, not just informational.
+Meta Facebook	Lead Gen / Conv.	Primary Text	1	5	125	Recommended ≤125 chars (truncated in feed). Max 500 chars.
+Meta Facebook	Lead Gen / Conv.	Headline	1	5	40	Recommended ≤40 chars (max 255). Bold text below image.
+Meta Facebook	Lead Gen / Conv.	Link Description	0	1	30	Desktop only. Recommended ≤30 chars (max 125).
+Meta Facebook	Lead Gen / Conv.	Image — Feed	1	10	1200×628	1.91:1 for feed. Also 1:1 (1200×1200) for square. Max 30% text rule.
+Meta Instagram	Stories	Story Image/Video	1	10	1080×1920	9:16 ratio. Leave 14% safe zone top + bottom for UI elements.
+Meta Instagram	Stories	Headline (overlay)	0	1	40	Optional overlay text on story creative.
+Microsoft Bing	RSA	Headline	3	15	30	Identical to Google RSA limits. Same pin strategy applies.
+Microsoft Bing	RSA	Description	2	4	90	Bing recommends min 2 descriptions.
+Microsoft Bing	RSA	Sitelink Title	4	20	25	Same as Google. Bing also appears on Yahoo & MSN.
+🏦 LAMF-SPECIFIC COPY RULES (MUST FOLLOW)							
+Rule	Category	Requirement
+RULE 1	Product Name	Use 'LAMF' or 'Loan Against MF' only. NEVER 'loan against mutual funds' lowercase, 'mutual funds' standalone, or 'mutual fund loans'.					
+RULE 2	Rate Mention	Always use 10.5%* p.a. with asterisk. Never state '10.5%' without asterisk. Add 'p.a.' always.					
+RULE 3	No Redemption USP	Phrase as: 'MF units lien-marked, not sold' OR 'No redemption' OR 'Don't sell MF — pledge it'. Never 'MF units deleted/removed'.					
+RULE 4	Compliance Asterisks	No Foreclosure Charges*, Zero Processing Fees*, No Capital Gains Tax* — ALL need * and compliance review before use.					
+RULE 5	Max Loan Amount	State as 'up to ₹2 Cr*' with asterisk. Subject to portfolio value and eligibility.					
+RULE 6	Regulatory Claims	SEBI & RBI Regulated NBFC — exact phrasing required. Do not abbreviate or rephrase.					
+RULE 7	Competitor Naming	Do NOT name specific competitor lenders (HDFC, ICICI, etc.) in any ad copy. Use generic 'personal loans' or '18%+'.					
+RULE 8	Pinning Strategy	HL Pin 2 = 'LAMF @ 10.5%* p.a.' — this must ALWAYS be pinned as HL2 across ALL Google/Bing search campaigns.					
+📎 OFFICIAL DOCUMENTATION LINKS							
+Google Ads Responsive Search Ads	https://support.google.com/google-ads/answer/7684791						
+Google Ads Extensions Guide	https://support.google.com/google-ads/answer/2375499						
+Google Performance Max	https://support.google.com/google-ads/answer/10724817						
+Meta Ads Specs & Formats	https://www.facebook.com/business/ads/ad-format-guide						
+Microsoft Bing Ads Help	https://help.ads.microsoft.com/apex/index/3/en/51001						
+ASCI Guidelines India	https://www.ascionline.in/asci-code/						

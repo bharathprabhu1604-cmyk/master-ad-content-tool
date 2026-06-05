@@ -1,0 +1,40 @@
+LAMF · GOOGLE SEARCH ADS — RSA COPY + LIVE PREVIEW														
+15 Headlines (≤30 chars) · 4 Descriptions (≤90 chars) · Column D/J = live LEN() · Column F/L = auto status · Preview updates as you type														
+CAMPAIGN SETUP — FILL IN BEFORE WRITING COPY	180													
+1	Campaign Name	101		181										
+2	Ad Group Name	102			
+3	Theme / Intent	184		185										
+4	Target Audience	187		188										
+5	Final URL	190		Looking For A Personal Loan? | LAMF @ 10.5%* p.a. | Smarter Than A Personal Loan										
+6	Display Path 1 (≤15 chars)	192		shriramcredit.com › lamf › apply-now										
+7	Display Path 2 (≤15 chars)	194		Skip the personal loan. Pledge your MF units & get funds at 10.5%* p.a. Stay invested. MF units lien-marked, not sold. Your portfolio grows while you access the cash you need.										
+														
+HEADLINES — 15 max | ≤ 30 characters each | Headline 2 pinned as 'LAMF @ 10.5%* p.a.'					
+#	Pin	Headline Copy (edit this column)	Chars	Limit	Status ✓/✗		SITELINKS PREVIEW (below the ad)							
+1	—	Looking For A Personal Loan?	28	30	✓ OK		Apply for LAMF	205						
+2	★ Pin 2	LAMF @ 10.5%* p.a.	18	30	✓ OK		Calculate Loan Value	209						
+3	—	Smarter Than A Personal Loan	28	30	✓ OK		Why LAMF?	212						
+4	—	MF Units Stay. Cash Arrives.	28	30	✓ OK		About Shriram Credit	215						
+5	—	Don't Sell MF. Pledge It.	25	30	✓ OK									
+6	—	100% Digital Process	20	30	✓ OK
+7	—	SEBI & RBI Regulated NBFC	25	30	✓ OK		MOBILE PREVIEW							
+8	—	Get Funds Up To ₹2 Cr*	22	30	✓ OK		  🟢 Sponsored  ·  shriramcredit.com							
+9	—	Stay Invested. Access Funds.	28	30	✓ OK		Looking For A Personal Loan? | LAMF @ 10.5%* p.a.							
+10	★ Pin 3	Apply Now. Get Funds Fast.	26	30	✓ OK		Skip the personal loan. Pledge your MF units & get funds at 10.5%* p.a. Stay inv...							
+11	—	Check Eligibility Now	21	30	✓ OK									
+12	—	Why Pay 18%+ On A Loan?	23	30	✓ OK
+13	—	40+ Years Of Trusted Legacy	27	30	✓ OK		📊 CHARACTER COUNT QUICK REFERENCE							
+14	—	No Asset Loss. Just Liquidity	29	30	✓ OK		Element	Max Chars	Status Logic	Note
+15	—	Get Cash. Stay Invested.	24	30	✓ OK		Headlines	30	LEN(copy) ≤ 30	Green<27 · Amber 27-30 · Red>30
+							Descriptions	90	LEN(copy) ≤ 90	Target 80-85 chars for best display
+DESCRIPTIONS — 4 max | ≤ 90 characters each | Description 1 & 4 recommended for pinning	243							15	LEN(path) ≤ 15	Each path separately
+#	Pin	Description Copy (edit this column)	Chars	Limit	Status ✓/✗		Sitelink Title	25	LEN(title) ≤ 25	Sitelinks sheet for full list
+1	★ Pin 1	Skip the personal loan. Pledge your MF units & get funds at 10.5%* p.a. Stay invested.	86	90	✓ OK		Callout Extension	25	LEN(callout) ≤ 25	Extensions sheet
+2	—	MF units lien-marked, not sold. Your portfolio grows while you access the cash you need.	88	90	✓ OK
+3	—	100% digital. Fast approval. Apply in minutes & unlock your credit line. No branch visits.	90	90	✓ OK		📌 PINNING GUIDE							
+4	★ Pin 2	Shriram Credit — SEBI & RBI regulated NBFC. 40+ years of legacy. Check eligibility today.	89	90	✓ OK		HL Pin 1	262						
+							HL Pin 2 ★	264						
+							HL Pin 3	266						
+							Desc Pin 1	268						
+							Desc Pin 2	270						
+📝 NOTE: This sheet shows the 'Personal Loan Intercept' theme. Copy the same structure for each theme: Instant Cash, Emergency Cash, Urgent Money, Low-Interest Loan, Wealth Preservation. Change Campaign Setup (rows 5-11) and rewrite headlines/descriptions per theme.														

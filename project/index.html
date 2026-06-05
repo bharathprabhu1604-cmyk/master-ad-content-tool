@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LAMF Ad Content Tool · Shriram Credit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* brand */
+    --navy: #1A2B4A;
+    --navy-900: #111d35;
+    --navy-800: #16243f;
+    --navy-700: #22355a;
+    --navy-600: #34496f;
+    --gold: #C8A951;
+    --gold-soft: #f3ead0;
+    --gold-tint: #faf6ea;
+    /* neutrals */
+    --bg: #F7F7F7;
+    --surface: #ffffff;
+    --line: #e6e8ec;
+    --line-strong: #d6d9df;
+    --ink: #1c2531;
+    --ink-soft: #5b6573;
+    --ink-faint: #8a93a1;
+    /* semantic */
+    --green: #1f9d57;
+    --green-bg: #e7f6ed;
+    --amber: #c98a14;
+    --amber-bg: #fbf2dd;
+    --red: #d23b3b;
+    --red-bg: #fbe7e7;
+    --blue: #1a73e8;
+    --shadow-sm: 0 1px 2px rgba(20,35,63,.06), 0 1px 3px rgba(20,35,63,.05);
+    --shadow-md: 0 4px 14px rgba(20,35,63,.08), 0 1px 3px rgba(20,35,63,.06);
+    --shadow-lg: 0 12px 32px rgba(20,35,63,.14);
+    --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+    --sidebar-w: 248px;
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+    --mono: 'Roboto Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  ::selection { background: var(--gold-soft); }
+  button { font-family: inherit; cursor: pointer; }
+  input, textarea, select { font-family: inherit; }
+  /* scrollbars */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #cfd4dc; border-radius: 6px; border: 2px solid var(--bg); }
+  ::-webkit-scrollbar-thumb:hover { background: #b6bcc7; }
+
+  #root { min-height: 100vh; }
+
+  /* ---------- App shell ---------- */
+  .app { display: flex; min-height: 100vh; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+  /* ---------- Generic buttons ---------- */
+  .btn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line-strong);
+    background: var(--surface); color: var(--ink); padding: 8px 13px; border-radius: var(--r-sm);
+    font-weight: 600; font-size: 13px; transition: all .14s ease; white-space: nowrap; }
+  .btn:hover { border-color: var(--navy-600); background: #fafbfc; }
+  .btn svg { width: 15px; height: 15px; }
+  .btn-primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .btn-primary:hover { background: var(--navy-700); border-color: var(--navy-700); }
+  .btn-gold { background: var(--gold); color: var(--navy-900); border-color: var(--gold); }
+  .btn-gold:hover { background: #d4b863; border-color: #d4b863; }
+  .btn-ghost { border-color: transparent; background: transparent; color: var(--ink-soft); }
+  .btn-ghost:hover { background: #eef0f3; color: var(--ink); }
+  .btn-sm { padding: 5px 9px; font-size: 12px; }
+
+  /* ---------- Char counter pill ---------- */
+  .pill { font-family: var(--mono); font-size: 11px; font-weight: 500; padding: 2px 7px;
+    border-radius: 20px; white-space: nowrap; letter-spacing: -.2px; }
+  .pill-green { background: var(--green-bg); color: var(--green); }
+  .pill-amber { background: var(--amber-bg); color: var(--amber); }
+  .pill-red { background: var(--red-bg); color: var(--red); }
+
+  /* ---------- Status badges ---------- */
+  .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+    padding: 3px 10px 3px 9px; border-radius: 20px; white-space: nowrap; border: 1px solid transparent; }
+  .badge .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .badge.clickable { cursor: pointer; }
+  .badge.clickable:hover { filter: brightness(.97); }
+  .st-notstarted { background: #f0f1f4; color: #5b6573; }
+  .st-notstarted .dot { background: #9aa3b1; }
+  .st-inprogress { background: var(--amber-bg); color: #9a6a0f; }
+  .st-inprogress .dot { background: var(--amber); }
+  .st-review { background: #eef2fb; color: #2a55b8; }
+  .st-review .dot { background: #3a6fd8; }
+  .st-approved { background: var(--green-bg); color: #157a42; }
+  .st-approved .dot { background: var(--green); }
+  .st-live { background: #e9f7f0; color: #0c7a52; box-shadow: inset 0 0 0 1px #bfe6d4; }
+  .st-live .dot { background: #0c9a63; box-shadow: 0 0 0 3px rgba(12,154,99,.18); }
+
+  /* ---------- Cards ---------- */
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+
+  /* ---------- Topbar ---------- */
+  .topbar { height: 64px; background: var(--surface); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 16px; padding: 0 26px; position: sticky; top: 0; z-index: 20; }
+  .topbar h1 { font-size: 16px; font-weight: 700; margin: 0; letter-spacing: -.2px; }
+  .topbar .crumb { color: var(--ink-faint); font-weight: 500; font-size: 13px; }
+
+  .content-scroll { flex: 1; overflow-y: auto; }
+
+  /* selects */
+  .field-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--ink-faint); margin-bottom: 5px; display: block; }
+  .input, .select { width: 100%; border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+    padding: 8px 10px; font-size: 13px; color: var(--ink); background: var(--surface); transition: border .14s, box-shadow .14s; }
+  .input:focus, .select:focus { outline: none; border-color: var(--navy-600); box-shadow: 0 0 0 3px rgba(26,43,74,.1); }
+  .select { appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5l3 3 3-3' stroke='%235b6573' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; cursor: pointer; }
+
+  /* toast */
+  .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+  .toast { background: var(--navy); color: #fff; padding: 12px 16px; border-radius: var(--r-md);
+    box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500;
+    min-width: 240px; animation: toastIn .26s cubic-bezier(.2,.8,.2,1); border-left: 3px solid var(--gold); }
+  .toast.warn { border-left-color: var(--amber); }
+  .toast.err { border-left-color: var(--red); }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* dropdown menu */
+  .menu { position: absolute; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+    box-shadow: var(--shadow-lg); padding: 5px; z-index: 200; min-width: 160px; }
+  .menu-item { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: var(--r-sm);
+    font-size: 13px; font-weight: 500; color: var(--ink); cursor: pointer; }
+  .menu-item:hover { background: #f1f3f6; }
+
+  .empty-tip { color: var(--ink-faint); font-size: 13px; }
+
+  /* fade-in screen — transform-only so content is never hidden if animation is suspended */
+  .screen-in { animation: screenIn .28s ease both; }
+  @keyframes screenIn { from { opacity: .55; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .screen-in { animation: none; } }
+
+  @media (max-width: 860px) {
+    :root { --sidebar-w: 0px; }
+  }
+</style>
+</head>
+<body>
+  <template id="__bundler_thumbnail" data-bg-color="#1A2B4A">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="800" fill="#1A2B4A"/>
+      <rect x="300" y="250" width="600" height="300" rx="40" fill="#C8A951"/>
+      <text x="600" y="465" font-family="Inter, sans-serif" font-size="200" font-weight="800" fill="#111d35" text-anchor="middle">S</text>
+    </svg>
+  </template>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script src="data.js"></script>
+  <script src="data2.js"></script>
+  <script type="text/babel" src="components.jsx"></script>
+  <script type="text/babel" src="sidebar.jsx"></script>
+  <script type="text/babel" src="screen_google.jsx"></script>
+  <script type="text/babel" src="screen_dashboard.jsx"></script>
+  <script type="text/babel" src="screens_more.jsx"></script>
+  <script type="text/babel" src="screens_more2.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+LAMF · MICROSOFT BING — RSA COPY + LIVE PREVIEW											
+Same RSA format as Google · 15 Headlines ≤30 chars · 4 Descriptions ≤90 chars · Bing may show slightly different ad formats											
+CAMPAIGN SETUP					
+1	Campaign Name	510			
+2	Ad Group	102			
+3	Final URL	190			
+4	Display Path 1	192			
+5	Display Path 2	514			
+BING HEADLINES — 15 max | ≤ 30 characters	516										
+#	Pin	Headline Copy (edit)	Chars	Limit	Status		Auto-updates from copy on left				
+1	—	Looking For A Personal Loan?	28	30	✓ OK
+2	★ Pin 2	LAMF @ 10.5%* p.a.	18	30	✓ OK		  Ad  ·  shriramcredit.com				
+3	—	Smarter Than A Personal Loan	28	30	✓ OK		Looking For A Personal Loan? | LAMF @ 10.5%* p.a. | Smarter Than A Personal Loan				
+4	—	MF Units Stay. Cash Arrives.	28	30	✓ OK		Skip the personal loan. Pledge your MF units & get funds at 10.5%* p.a. Stay invested. MF units lien-marked, not sold. Your portfolio grows while you access the cash you need.				
+5	—	100% Digital Process	20	30	✓ OK						
+6	—	SEBI & RBI Regulated NBFC	25	30	✓ OK
+7	—	Get Funds Up To ₹2 Cr*	22	30	✓ OK		Key Bing difference: Also appears on Yahoo, MSN, LinkedIn Audience Network				
+8	—	Don't Sell MF. Pledge It.	25	30	✓ OK
+9	—	Stay Invested. Access Funds.	28	30	✓ OK
+10	★ Pin 3	Apply Now. Get Funds Fast.	26	30	✓ OK
+11	—	Check Eligibility Now	21	30	✓ OK
+12	—	Why Pay 18%+ On A Loan?	23	30	✓ OK
+13	—	40+ Years Of Trusted Legacy	27	30	✓ OK
+14	—	No Asset Loss. Just Liquidity	29	30	✓ OK
+15	—	Get Cash. Stay Invested.	24	30	✓ OK
+BING DESCRIPTIONS — 4 max | ≤ 90 characters					
+#	Pin	Description Copy (edit)	Chars	Limit	Status
+1	★ Pin 1	Skip the personal loan. Pledge your MF units & get funds at 10.5%* p.a. Stay invested.	86	90	✓ OK
+2	—	MF units lien-marked, not sold. Your portfolio grows while you access the cash you need.	88	90	✓ OK
+3	—	100% digital. Fast approval. Apply in minutes & unlock your credit line. No branch visits.	90	90	✓ OK
+4	★ Pin 2	Shriram Credit — SEBI & RBI regulated NBFC. 40+ years of legacy. Check eligibility today.	89	90	✓ OK
