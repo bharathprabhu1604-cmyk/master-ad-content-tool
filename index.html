@@ -1,0 +1,1926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LAMF Ad Content Tool · Shriram Credit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy: #1A2B4A; --navy-900: #111d35; --navy-800: #16243f; --navy-700: #22355a; --navy-600: #34496f;
+    --gold: #C8A951; --gold-soft: #f3ead0; --gold-tint: #faf6ea;
+    --bg: #F7F7F7; --surface: #ffffff; --line: #e6e8ec; --line-strong: #d6d9df;
+    --ink: #1c2531; --ink-soft: #5b6573; --ink-faint: #8a93a1;
+    --green: #1f9d57; --green-bg: #e7f6ed; --amber: #c98a14; --amber-bg: #fbf2dd;
+    --red: #d23b3b; --red-bg: #fbe7e7; --blue: #1a73e8;
+    --shadow-sm: 0 1px 2px rgba(20,35,63,.06),0 1px 3px rgba(20,35,63,.05);
+    --shadow-md: 0 4px 14px rgba(20,35,63,.08),0 1px 3px rgba(20,35,63,.06);
+    --shadow-lg: 0 12px 32px rgba(20,35,63,.14);
+    --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+    --sidebar-w: 248px; --font: 'Inter',system-ui,-apple-system,sans-serif; --mono: 'Roboto Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;} html,body{margin:0;padding:0;}
+  body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;}
+  ::selection{background:var(--gold-soft);}
+  button{font-family:inherit;cursor:pointer;} input,textarea,select{font-family:inherit;}
+  ::-webkit-scrollbar{width:10px;height:10px;} ::-webkit-scrollbar-thumb{background:#cfd4dc;border-radius:6px;border:2px solid var(--bg);}
+  ::-webkit-scrollbar-thumb:hover{background:#b6bcc7;}
+  #root{min-height:100vh;}
+  .app{display:flex;min-height:100vh;} .main{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);padding:8px 13px;border-radius:var(--r-sm);font-weight:600;font-size:13px;transition:all .14s ease;white-space:nowrap;}
+  .btn:hover{border-color:var(--navy-600);background:#fafbfc;} .btn svg{width:15px;height:15px;}
+  .btn-primary{background:var(--navy);color:#fff;border-color:var(--navy);} .btn-primary:hover{background:var(--navy-700);border-color:var(--navy-700);}
+  .btn-gold{background:var(--gold);color:var(--navy-900);border-color:var(--gold);} .btn-gold:hover{background:#d4b863;border-color:#d4b863;}
+  .btn-ghost{border-color:transparent;background:transparent;color:var(--ink-soft);} .btn-ghost:hover{background:#eef0f3;color:var(--ink);}
+  .btn-sm{padding:5px 9px;font-size:12px;}
+  .pill{font-family:var(--mono);font-size:11px;font-weight:500;padding:2px 7px;border-radius:20px;white-space:nowrap;letter-spacing:-.2px;}
+  .pill-green{background:var(--green-bg);color:var(--green);} .pill-amber{background:var(--amber-bg);color:var(--amber);} .pill-red{background:var(--red-bg);color:var(--red);}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 10px 3px 9px;border-radius:20px;white-space:nowrap;border:1px solid transparent;}
+  .badge .dot{width:6px;height:6px;border-radius:50%;} .badge.clickable{cursor:pointer;} .badge.clickable:hover{filter:brightness(.97);}
+  .st-notstarted{background:#f0f1f4;color:#5b6573;} .st-notstarted .dot{background:#9aa3b1;}
+  .st-inprogress{background:var(--amber-bg);color:#9a6a0f;} .st-inprogress .dot{background:var(--amber);}
+  .st-review{background:#eef2fb;color:#2a55b8;} .st-review .dot{background:#3a6fd8;}
+  .st-approved{background:var(--green-bg);color:#157a42;} .st-approved .dot{background:var(--green);}
+  .st-live{background:#e9f7f0;color:#0c7a52;box-shadow:inset 0 0 0 1px #bfe6d4;} .st-live .dot{background:#0c9a63;box-shadow:0 0 0 3px rgba(12,154,99,.18);}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);}
+  .topbar{height:64px;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 26px;position:sticky;top:0;z-index:20;}
+  .topbar h1{font-size:16px;font-weight:700;margin:0;letter-spacing:-.2px;} .topbar .crumb{color:var(--ink-faint);font-weight:500;font-size:13px;}
+  .content-scroll{flex:1;overflow-y:auto;}
+  .field-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:5px;display:block;}
+  .input,.select{width:100%;border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:8px 10px;font-size:13px;color:var(--ink);background:var(--surface);transition:border .14s,box-shadow .14s;}
+  .input:focus,.select:focus{outline:none;border-color:var(--navy-600);box-shadow:0 0 0 3px rgba(26,43,74,.1);}
+  .select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5l3 3 3-3' stroke='%235b6573' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer;}
+  .toast-wrap{position:fixed;bottom:24px;right:24px;z-index:1000;display:flex;flex-direction:column;gap:10px;}
+  .toast{background:var(--navy);color:#fff;padding:12px 16px;border-radius:var(--r-md);box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;min-width:240px;animation:toastIn .26s cubic-bezier(.2,.8,.2,1);border-left:3px solid var(--gold);}
+  .toast.warn{border-left-color:var(--amber);} .toast.err{border-left-color:var(--red);}
+  @keyframes toastIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .menu{position:absolute;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow-lg);padding:5px;z-index:200;min-width:160px;}
+  .menu-item{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:var(--r-sm);font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;}
+  .menu-item:hover{background:#f1f3f6;} .empty-tip{color:var(--ink-faint);font-size:13px;}
+  .screen-in{animation:screenIn .28s ease both;} @keyframes screenIn{from{opacity:.55;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){.screen-in{animation:none;}}
+  @media (max-width:860px){:root{--sidebar-w:0px;}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script>
+/* LAMF Ad Content Tool — content extracted & authored from the Shriram Credit workbook.
+   pin: headlines use 1|2|3 (RSA position), null = rotates. descriptions use 1|2, null = rotates. */
+(function () {
+  const HL_LIMIT = 30, DESC_LIMIT = 90, PATH_LIMIT = 15;
+
+  // helper to build headline/description objects
+  const h = (text, pin = null) => ({ text, pin });
+  const d = (text, pin = null) => ({ text, pin });
+
+  const campaigns = [
+    {
+      id: "personal-loan",
+      name: "Personal Loan Intercept",
+      adGroup: "Personal Loan",
+      account: "Shriram Credit — LAMF Search",
+      theme: "Personal Loan Alternatives",
+      audience: "High-intent personal-loan searchers",
+      finalUrl: "https://www.shriramcredit.com/lamf/apply",
+      path1: "lamf",
+      path2: "apply-now",
+      status: "Review",
+      priority: "High",
+      headlines: [
+        h("Looking For A Personal Loan?"),
+        h("LAMF @ 10.5%* p.a.", 2),
+        h("Smarter Than A Personal Loan"),
+        h("MF Units Stay. Cash Arrives."),
+        h("Don't Sell MF. Pledge It."),
+        h("100% Digital Process"),
+        h("SEBI & RBI Regulated NBFC"),
+        h("Get Funds Up To ₹2 Cr*"),
+        h("Stay Invested. Access Funds."),
+        h("Apply Now. Get Funds Fast.", 3),
+        h("Check Eligibility Now"),
+        h("Why Pay 18%+ On A Loan?"),
+        h("40+ Years Of Trusted Legacy"),
+        h("No Asset Loss. Just Liquidity"),
+        h("Get Cash. Stay Invested."),
+      ],
+      descriptions: [
+        d("Skip the personal loan. Pledge your MF units & get funds at 10.5%* p.a. Stay invested.", 1),
+        d("MF units lien-marked, not sold. Your portfolio grows while you access the cash you need."),
+        d("100% digital. Fast approval. Apply in minutes & unlock your credit line. No branch visits."),
+        d("Shriram Credit — SEBI & RBI regulated NBFC. 40+ years of legacy. Check eligibility today.", 2),
+      ],
+    },
+    {
+      id: "instant-cash",
+      name: "Instant Cash Intercept",
+      adGroup: "Instant / Quick Cash",
+      account: "Shriram Credit — LAMF Search",
+      theme: "Instant Cash",
+      audience: "Users searching instant / quick cash",
+      finalUrl: "https://www.shriramcredit.com/lamf/instant",
+      path1: "lamf",
+      path2: "instant-cash",
+      status: "In Progress",
+      priority: "High",
+      headlines: [
+        h("Need Instant Cash Today?"),
+        h("LAMF @ 10.5%* p.a.", 2),
+        h("Cash In Minutes, Not Days"),
+        h("Pledge MF. Get Funds Fast."),
+        h("Don't Sell. Don't Wait."),
+        h("100% Digital. Instant Setup."),
+        h("SEBI & RBI Regulated NBFC"),
+        h("Funds Up To ₹2 Cr*"),
+        h("Your MF Is Your Cash Reserve"),
+        h("Apply Now. Get Funds Fast.", 3),
+        h("Check Eligibility In Minutes"),
+        h("Quick Cash Without Selling MF"),
+        h("Same-Day Digital Approval"),
+        h("Instant Liquidity, Zero Loss"),
+        h("Get Cash. Stay Invested."),
+      ],
+      descriptions: [
+        d("Need cash fast? Pledge your MF units & unlock funds at 10.5%* p.a. Instantly. Stay invested.", 1),
+        d("MF units lien-marked, not sold. Access instant liquidity while your portfolio keeps growing."),
+        d("100% digital. Same-day approval. Apply in minutes & unlock your credit line. No branch visits."),
+        d("Shriram Credit — SEBI & RBI regulated NBFC. 40+ years of legacy. Check eligibility today.", 2),
+      ],
+    },
+    {
+      id: "emergency-cash",
+      name: "Emergency Cash Intercept",
+      adGroup: "Emergency Cash",
+      account: "Shriram Credit — LAMF Search",
+      theme: "Emergency Cash",
+      audience: "Medical / urgent expense searchers",
+      finalUrl: "https://www.shriramcredit.com/lamf/emergency",
+      path1: "lamf",
+      path2: "emergency",
+      status: "Not Started",
+      priority: "High",
+      headlines: [
+        h("Facing An Emergency Expense?"),
+        h("LAMF @ 10.5%* p.a.", 2),
+        h("Your MF Is An Emergency Fund"),
+        h("Pledge MF. Cover The Crisis."),
+        h("Don't Break Your Portfolio"),
+        h("100% Digital Emergency Loan"),
+        h("SEBI & RBI Regulated NBFC"),
+        h("Funds Up To ₹2 Cr*"),
+        h("Medical Needs? Pledge MF."),
+        h("Apply Now. Get Funds Fast.", 3),
+        h("Check Eligibility Now"),
+        h("Cash For Any Emergency"),
+        h("40+ Years Of Trusted Legacy"),
+        h("Liquidity When You Need It"),
+        h("Get Cash. Stay Invested."),
+      ],
+      descriptions: [
+        d("Emergency? Pledge your MF units & get funds at 10.5%* p.a. Fast. Keep your investments intact.", 1),
+        d("Your MF portfolio is your emergency fund. Lien-mark units, get cash, investments stay invested."),
+        d("100% digital. Fast approval for urgent needs. Apply in minutes. No branch visits, no delays."),
+        d("Shriram Credit — SEBI & RBI regulated NBFC. 40+ years of legacy. Check eligibility today.", 2),
+      ],
+    },
+    {
+      id: "urgent-money",
+      name: "Urgent Money Intercept",
+      adGroup: "Urgent Money Need",
+      account: "Shriram Credit — LAMF Search",
+      theme: "Urgent Money",
+      audience: "Urgent money / fast funds searchers",
+      finalUrl: "https://www.shriramcredit.com/lamf/urgent",
+      path1: "lamf",
+      path2: "urgent-funds",
+      status: "Not Started",
+      priority: "Medium",
+      headlines: [
+        h("Need Money Urgently?"),
+        h("LAMF @ 10.5%* p.a.", 2),
+        h("Urgent Funds Without Selling MF"),
+        h("Pledge MF. Get Money Now."),
+        h("Skip The 18%+ Personal Loan"),
+        h("100% Digital. Fast Disbursal."),
+        h("SEBI & RBI Regulated NBFC"),
+        h("Funds Up To ₹2 Cr*"),
+        h("Fast Money, No Asset Loss"),
+        h("Apply Now. Get Funds Fast.", 3),
+        h("Check Eligibility Now"),
+        h("Why Sell When You Can Pledge?"),
+        h("40+ Years Of Trusted Legacy"),
+        h("Urgent Liquidity, Intact Wealth"),
+        h("Get Cash. Stay Invested."),
+      ],
+      descriptions: [
+        d("Need money urgently? Pledge MF units & get funds at 10.5%* p.a. Fast. Stay fully invested.", 1),
+        d("MF units lien-marked, not sold. Get urgent funds while your portfolio continues to grow."),
+        d("100% digital. Fast disbursal. Apply in minutes & unlock your credit line. No branch visits."),
+        d("Shriram Credit — SEBI & RBI regulated NBFC. 40+ years of legacy. Check eligibility today.", 2),
+      ],
+    },
+    {
+      id: "low-interest",
+      name: "Low-Interest Loan Intercept",
+      adGroup: "Low-Interest Loan",
+      account: "Shriram Credit — LAMF Search",
+      theme: "Low-Rate Loan",
+      audience: "Rate-sensitive loan comparison shoppers",
+      finalUrl: "https://www.shriramcredit.com/lamf/rates",
+      path1: "lamf",
+      path2: "low-rate",
+      status: "In Progress",
+      priority: "High",
+      headlines: [
+        h("Want A Low-Interest Loan?"),
+        h("LAMF @ 10.5%* p.a.", 2),
+        h("Half The Cost Of A Loan"),
+        h("Pay Only On What You Use"),
+        h("Why Pay 18%+ On A Loan?"),
+        h("100% Digital Process"),
+        h("SEBI & RBI Regulated NBFC"),
+        h("Funds Up To ₹2 Cr*"),
+        h("Lower Rate. Stay Invested."),
+        h("Apply Now. Get Funds Fast.", 3),
+        h("Check Your Rate In Minutes"),
+        h("The Math Is Clear. Switch."),
+        h("40+ Years Of Trusted Legacy"),
+        h("Smart Borrowing Starts Here"),
+        h("Get Cash. Stay Invested."),
+      ],
+      descriptions: [
+        d("Personal loans charge 18-24%. LAMF starts at 10.5%* p.a. Pay only on the amount you use.", 1),
+        d("MF units lien-marked, not sold. Lower your borrowing cost while your portfolio keeps growing."),
+        d("100% digital. Fast approval. Apply in minutes & unlock your credit line. No branch visits."),
+        d("Shriram Credit — SEBI & RBI regulated NBFC. 40+ years of legacy. Check eligibility today.", 2),
+      ],
+    },
+    {
+      id: "wealth-preservation",
+      name: "Wealth Preservation",
+      adGroup: "Investor Mindset",
+      account: "Shriram Credit — LAMF Search",
+      theme: "Wealth / Investor",
+      audience: "Long-term MF investors avoiding redemption",
+      finalUrl: "https://www.shriramcredit.com/lamf/investors",
+      path1: "lamf",
+      path2: "investors",
+      status: "Not Started",
+      priority: "Medium",
+      headlines: [
+        h("Don't Redeem. Pledge Instead."),
+        h("LAMF @ 10.5%* p.a.", 2),
+        h("Keep Your Portfolio Compounding"),
+        h("No Redemption. No Tax Event."),
+        h("Smart Investors Don't Sell"),
+        h("100% Digital Process"),
+        h("SEBI & RBI Regulated NBFC"),
+        h("Funds Up To ₹2 Cr*"),
+        h("Let Your MF Work For You"),
+        h("Unlock Liquidity Today.", 3),
+        h("Check Eligibility Now"),
+        h("Liquidity Without Disruption"),
+        h("40+ Years Of Trusted Legacy"),
+        h("Preserve Wealth. Access Cash."),
+        h("Stay Invested. Access Funds."),
+      ],
+      descriptions: [
+        d("Your wealth shouldn't stop working while you access liquidity. LAMF keeps both intact @ 10.5%* p.a.", 1),
+        d("No redemption, no capital gains tax event. Pledge MF units & keep your portfolio compounding."),
+        d("100% digital. Fast approval. Apply in minutes & unlock your credit line. No branch visits."),
+        d("Shriram Credit — SEBI & RBI regulated NBFC. 40+ years of legacy. Check eligibility today.", 2),
+      ],
+    },
+  ];
+
+  window.LAMF_DATA = {
+    limits: { headline: HL_LIMIT, description: DESC_LIMIT, path: PATH_LIMIT, sitelinkTitle: 25, sitelinkDesc: 35, callout: 25 },
+    brand: {
+      product: "Loan Against Mutual Funds (LAMF)",
+      rate: "10.5%* p.a.",
+      maxLoan: "Up to ₹2 Cr*",
+      regulator: "SEBI & RBI",
+      founded: "1974 — 40+ years legacy",
+      collateral: "MF units lien-marked, NOT sold",
+      coreUsp: "Stay invested. Access funds.",
+    },
+    statuses: ["Not Started", "In Progress", "Review", "Approved", "Live"],
+    campaigns,
+    pinningGuide: [
+      { slot: "HL Pin 1", rule: "Intent mirror — echo the searcher's query", pinned: false },
+      { slot: "HL Pin 2 ★", rule: "“LAMF @ 10.5%* p.a.” — always pinned (Rule 8)", pinned: true },
+      { slot: "HL Pin 3", rule: "Call to action — “Apply Now. Get Funds Fast.”", pinned: true },
+      { slot: "Desc Pin 1", rule: "Rate reframe vs. a personal loan", pinned: true },
+      { slot: "Desc Pin 2", rule: "Trust signal + CTA", pinned: true },
+    ],
+    sitelinks: [
+      ["Apply for LAMF", "Check your eligibility in minutes", "100% digital — apply from phone"],
+      ["Calculate Loan Value", "Know your LAMF loan limit now", "Enter MF portfolio value to check"],
+      ["Why LAMF?", "Better rates than personal loans", "MF units lien-marked, not sold"],
+      ["About Shriram Credit", "SEBI & RBI regulated NBFC", "40+ years of trusted legacy"],
+      ["LAMF Interest Rates", "10.5%* p.a. — interest on use", "Pay only for what you withdraw"],
+      ["Pledge Your MF Now", "Simple lien-mark process", "No redemption — portfolio grows"],
+      ["LAMF for Medical Needs", "Emergency fund without selling", "Fast digital approval process"],
+      ["LAMF for Education", "Fund education, stay invested", "No capital gains tax event"],
+    ],
+    callouts: [
+      "LAMF @ 10.5%* p.a.", "100% Digital Process", "SEBI & RBI Regulated", "40+ Years Legacy",
+      "MF Units Not Sold", "Quick Approval", "Pay Only On Usage", "No Capital Gains Tax*",
+      "No Foreclosure Charges*", "Zero Processing Fees*", "Fast Disbursal", "Up To ₹2 Cr*",
+      "Stay Invested", "Lien-Mark, Not Redeem", "Trusted NBFC", "Same-Day Approval",
+      "Wealth Continues", "No Branch Visit", "Secure Digital Process", "Flexible Repayment",
+    ],
+    snippets: [
+      { header: "Services", values: ["LAMF", "Credit Line", "Loan Pledge", "Quick Approval", "Digital Process"] },
+      { header: "Features", values: ["Low Interest Rate", "Stay Invested", "MF Units Safe", "No Redemption", "100% Digital", "Fast Disbursal", "SEBI Regulated"] },
+      { header: "Benefits", values: ["10.5%* p.a. Rate", "No Tax Event*", "No Foreclosure*", "Portfolio Safe", "Funds Fast"] },
+    ],
+    images: [
+      ["LAMF Rate Hero", "10.5%* p.a. rate graphic — gold on navy", "1200×628"],
+      ["Stay Invested Visual", "MF portfolio graph + cash visual", "1200×628"],
+      ["Wedding Scenario", "Happy wedding couple — with LAMF overlay", "1200×628"],
+      ["Education Scenario", "Student with laptop — education funding", "1200×628"],
+      ["Square — Rate", "10.5%* rate badge — square format", "1200×1200"],
+    ],
+    promotions: [
+      ["None / Ongoing", "Rates From 10.5%* p.a.", "", "", 22],
+      ["Dussehra", "Rate Special Offer", "01-Oct", "15-Oct", 18],
+      ["Financial Year End", "Check Eligibility Now", "01-Mar", "31-Mar", 21],
+    ],
+  };
+})();
+</script>
+<script>
+/* LAMF Ad Content Tool — copy bank, content tracker, meta/bing, guidelines reference. */
+(function () {
+  const D = window.LAMF_DATA;
+
+  D.copyBank = {
+    usps: [
+      ["Rate Advantage", "LAMF @ 10.5%* p.a. — interest only on amount utilized"],
+      ["No Redemption", "MF units lien-marked, not sold — portfolio continues to grow"],
+      ["No Tax Trigger", "No capital gains tax event — no redemption = no tax"],
+      ["Speed", "100% digital process — fast approval, fast disbursal"],
+      ["Regulation", "SEBI & RBI regulated NBFC — trusted and compliant"],
+      ["Legacy", "40+ years of trust — Shriram Credit since 1974"],
+      ["Portfolio Safety", "Investments intact while you access funds"],
+      ["Flexibility", "Interest only on the amount you use, not full limit"],
+      ["Limit", "Funds up to ₹2 Cr* based on MF portfolio value"],
+      ["Comparison", "Significantly lower rate than personal loans (typically 18–24%)"],
+    ],
+    ctas: [
+      "Apply for LAMF", "Check Eligibility", "Check Your Loan Value", "Unlock a Credit Line",
+      "Unlock My Funds", "Calculate LAMF Eligibility", "Pledge Now", "Pledge MF",
+      "Unlock Your Credit Limit", "Get Approved in 5 Minutes", "Get Cash, Stay Invested", "Learn More About LAMF",
+    ],
+    powerWords: [
+      ["Urgency", "Instantly · Fast · Quick · Now · Today · Minutes"],
+      ["Safety", "Secure · Protected · Safe · Intact · Preserved · Lien-Marked"],
+      ["Trust", "Trusted · Regulated · Legacy · SEBI · RBI · 40+ Years"],
+      ["Smart/Savvy", "Smarter · Intelligent · Strategic · Wise · Efficient"],
+      ["Fear of Loss", "Don't Break · Don't Sell · Don't Redeem · Protect"],
+      ["Exclusivity", "Your Portfolio · Your Wealth · Your Future · Your Goals"],
+      ["Comparison", "Better than · Unlike loans · vs personal loan · smarter"],
+      ["Simplicity", "Simple · Easy · Digital · Paperless · No Branch Visit"],
+    ],
+    avoid: [
+      ["Product Name", "'mutual fund loans', 'loan against mutual funds' (lowercase), 'MF loans'"],
+      ["Rate", "'10.5%' without asterisk, '10.5 percent', 'lowest rate' (superlative)"],
+      ["Competitor", "Any specific bank/NBFC/fintech name comparison (e.g. 'better than HDFC')"],
+      ["Guarantee", "'guaranteed approval', 'guaranteed rate', 'no rejection'"],
+      ["Superlatives", "'best', 'lowest', 'fastest', '#1' — unless documented"],
+    ],
+  };
+
+  D.tracker = [
+    [1, "Google Search", "RSA", "LAMF — Personal Loan Intercept", "Headlines (15) + Descriptions (4)", "Priya Nair", "Jun 12", "Review", "A. Mehta"],
+    [2, "Google Search", "RSA", "LAMF — Instant Cash Intercept", "Headlines (15) + Descriptions (4)", "Priya Nair", "Jun 12", "In Progress", "A. Mehta"],
+    [3, "Google Search", "RSA", "LAMF — Emergency Cash Intercept", "Headlines (15) + Descriptions (4)", "Rohan Das", "Jun 14", "Not Started", "A. Mehta"],
+    [4, "Google Search", "RSA", "LAMF — Urgent Money Intercept", "Headlines (15) + Descriptions (4)", "Rohan Das", "Jun 14", "Not Started", "A. Mehta"],
+    [5, "Google Search", "RSA", "LAMF — Low Interest Loan Intercept", "Headlines (15) + Descriptions (4)", "Priya Nair", "Jun 13", "In Progress", "A. Mehta"],
+    [6, "Google Search", "RSA", "LAMF — Wealth Preservation", "Headlines (15) + Descriptions (4)", "Sara Iyer", "Jun 16", "Not Started", "A. Mehta"],
+    [7, "Google Search", "Extensions", "All Campaigns", "Sitelinks (8) + Callouts (20)", "Sara Iyer", "Jun 10", "Approved", "A. Mehta"],
+    [8, "Google Search", "Extensions", "All Campaigns", "Structured Snippets + Promos", "Sara Iyer", "Jun 11", "Review", "A. Mehta"],
+    [9, "Google Display", "Responsive", "LAMF — Display Awareness", "Short HLs (10) + Long HLs (5) + Descs (5)", "Rohan Das", "Jun 18", "Not Started", "—"],
+    [10, "Google PMax", "Performance Max", "LAMF — PMax", "All asset groups — HLs + Descs + Images", "Priya Nair", "Jun 20", "Not Started", "—"],
+    [11, "Google Demand Gen", "Demand Gen", "LAMF — DemandGen", "HLs (5) + Descs (5) per variation", "Sara Iyer", "Jun 22", "Not Started", "—"],
+    [12, "Meta Facebook", "Lead Gen", "LAMF — FB Lead Gen", "Primary Text V1-V5 + HL V1-V5", "Priya Nair", "Jun 15", "In Progress", "A. Mehta"],
+    [13, "Meta Facebook", "Conversions", "LAMF — FB Retargeting", "Primary Text V1-V5 + HL V1-V5", "Rohan Das", "Jun 17", "Not Started", "—"],
+    [14, "Meta Facebook", "Awareness", "LAMF — FB Awareness", "Primary Text V1-V5 + HL V1-V5", "Sara Iyer", "Jun 19", "Not Started", "—"],
+    [15, "Meta Instagram", "Stories", "LAMF — IG Stories", "Story overlay text (3 variations)", "Priya Nair", "Jun 19", "Not Started", "—"],
+    [16, "Microsoft Bing", "RSA", "LAMF — Bing Personal Loan", "Headlines (15) + Descriptions (4)", "Rohan Das", "Jun 21", "Not Started", "—"],
+    [17, "Microsoft Bing", "RSA", "LAMF — Bing Emergency", "Headlines (15) + Descriptions (4)", "Rohan Das", "Jun 23", "Not Started", "—"],
+  ];
+
+  // Meta Facebook copy (Lead Gen ad set) — from workbook
+  D.meta = {
+    objective: "Lead Generation",
+    adSet: "Lookalike — MF Investors",
+    audience: "1% LLA of MF investors, 30-55, metro India",
+    placement: "Facebook Feed · Instagram Feed · Stories",
+    cta: "Apply Now",
+    finalUrl: "https://www.shriramcredit.com/lamf/apply",
+    primaryText: [
+      { use: "A/B", text: "Skip the personal loan. Your MF portfolio can fund your needs at 10.5%* p.a. — lien-mark your units, get cash, stay invested. 100% digital." },
+      { use: "A/B", text: "Why pay 18%+ on a personal loan? With LAMF, pledge your MF units and get funds at 10.5%* p.a. MF units lien-marked, not sold. Apply now." },
+      { use: "Rate Focus", text: "LAMF @ 10.5%* p.a. — nearly half the cost of a personal loan. Your MF units stay invested while you access instant liquidity. ✓ SEBI & RBI regulated." },
+      { use: "USP Focus", text: "You've built a portfolio. Now let it work for you. Pledge your MF units, get funds at 10.5%* p.a. — no redemption, no tax event, no delay. ✓ 100% digital." },
+      { use: "Trust Focus", text: "Shriram Credit — SEBI & RBI regulated NBFC, 40+ years of trust. LAMF: pledge MF units, access funds fast, stay invested. Apply digitally today." },
+    ],
+    headlines: [
+      "LAMF @ 10.5%* p.a. — Stay Invested",
+      "Don't Break Your Portfolio. Pledge It.",
+      "Funds In Minutes. Wealth Intact.",
+      "MF Units Safe. Cash In Hand.",
+      "Smarter Than A Personal Loan",
+    ],
+    linkDesc: [
+      "Pledge MF. Access cash. Stay invested.",
+      "10.5%* p.a. — lower than any loan.",
+      "100% digital. Apply in minutes.",
+      "SEBI & RBI regulated. 40+ yrs trust.",
+      "No MF sold. No tax. Fast disbursal.",
+    ],
+    limits: { primary: 125, headline: 40, linkDesc: 30 },
+  };
+
+  D.guidelines = [
+    ["Google Search", "RSA", "Headline", 3, 15, "30", "Pin 1=intent, Pin 2=LAMF rate, Pin 3=CTA. Use all 15 for best coverage."],
+    ["Google Search", "RSA", "Description", 1, 4, "90", "Pin 1=rate reframe, Pin 2=trust+CTA. Aim 80-85 chars."],
+    ["Google Search", "RSA", "Display URL Path", 0, 2, "15", "Each path ≤15 chars. Readable keywords e.g. /lamf /apply-now"],
+    ["Google Search", "RSA", "Sitelink Title", 4, 20, "25", "Minimum 4 sitelinks. Keyword-rich, action-oriented text."],
+    ["Google Search", "RSA", "Callout Extension", 4, 20, "25", "Minimum 4. Use specific USPs not generic phrases."],
+    ["Google Display", "Responsive", "Short Headline", 5, 15, "30", "Min 5 required. Google combines automatically. Include brand."],
+    ["Google Display", "Responsive", "Long Headline", 1, 5, "90", "At least 1 required. Must make sense standalone."],
+    ["Google PMax", "Performance Max", "Headline", 3, 15, "30", "Same limits as RSA. Min 3, max 15. Aim for 10+."],
+    ["Google PMax", "Performance Max", "Image (Landscape)", 1, 20, "1200×628", "1.91:1 ratio. Keep text away from edges."],
+    ["Google Demand Gen", "Demand Gen", "Headline", 1, 5, "40", "More chars than RSA. Be compelling — interruption media."],
+    ["Meta Facebook", "Lead Gen / Conv.", "Primary Text", 1, 5, "125", "Recommended ≤125 chars (truncated in feed). Max 500."],
+    ["Meta Facebook", "Lead Gen / Conv.", "Headline", 1, 5, "40", "Recommended ≤40 chars (max 255). Bold below image."],
+    ["Meta Facebook", "Lead Gen / Conv.", "Link Description", 0, 1, "30", "Desktop only. Recommended ≤30 chars (max 125)."],
+    ["Meta Instagram", "Stories", "Story Image/Video", 1, 10, "1080×1920", "9:16 ratio. 14% safe zone top + bottom."],
+    ["Microsoft Bing", "RSA", "Headline", 3, 15, "30", "Identical to Google RSA limits. Same pin strategy."],
+    ["Microsoft Bing", "RSA", "Description", 2, 4, "90", "Bing recommends min 2 descriptions."],
+  ];
+
+  D.copyRules = [
+    ["RULE 1", "Product Name", "Use 'LAMF' or 'Loan Against MF' only. Never lowercase 'mutual funds' or 'mutual fund loans'."],
+    ["RULE 2", "Rate Mention", "Always use 10.5%* p.a. with asterisk and 'p.a.'. Never bare '10.5%'."],
+    ["RULE 3", "No Redemption", "Phrase as 'MF units lien-marked, not sold' / 'No redemption' / 'Don't sell MF — pledge it'."],
+    ["RULE 4", "Compliance *", "No Foreclosure Charges*, Zero Processing Fees*, No Capital Gains Tax* — all need * + sign-off."],
+    ["RULE 5", "Max Loan", "State as 'up to ₹2 Cr*' with asterisk. Subject to portfolio value & eligibility."],
+    ["RULE 6", "Regulatory", "'SEBI & RBI Regulated NBFC' — exact phrasing. Do not abbreviate or rephrase."],
+    ["RULE 7", "Competitor", "Do NOT name specific competitor lenders. Use generic 'personal loans' or '18%+'."],
+    ["RULE 8", "Pinning", "HL Pin 2 = 'LAMF @ 10.5%* p.a.' must ALWAYS be pinned as HL2 across all Search campaigns."],
+  ];
+
+  // Channels for the dashboard / sidebar mapping
+  D.channelMeta = {
+    "Google Search": { short: "Google", color: "#1A73E8" },
+    "Google Display": { short: "Display", color: "#1A73E8" },
+    "Google PMax": { short: "PMax", color: "#1A73E8" },
+    "Google Demand Gen": { short: "Demand Gen", color: "#1A73E8" },
+    "Meta Facebook": { short: "Meta", color: "#1877F2" },
+    "Meta Instagram": { short: "Instagram", color: "#C13584" },
+    "Microsoft Bing": { short: "Bing", color: "#0078D4" },
+  };
+})();
+</script>
+<script type="text/babel">
+/* Shared components, icons, helpers. Exported to window for cross-file use. */
+const { useState, useEffect, useRef, useCallback, createContext, useContext } = React;
+
+/* ---------------- Icons (simple line set) ---------------- */
+const ICONS = {
+  dashboard: "M3 3h7v8H3zM14 3h7v5h-7zM14 11h7v10h-7zM3 14h7v7H3z",
+  search: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5",
+  plug: "M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4",
+  display: "M3 4h18v12H3zM8 20h8M12 16v4",
+  star: "M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.8 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z",
+  facebook: "M14 8h2V5h-2a3 3 0 0 0-3 3v2H9v3h2v6h3v-6h2.2l.5-3H14V8.5c0-.4.2-.5.6-.5z",
+  bing: "M7 3l4 1.5V16l4-2-1.6-.6L12 10l5 1.8v3.4L9 21l-2-1V3z",
+  compliance: "M9 12l2 2 4-4M12 3l7 3v5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z",
+  chart: "M4 20V10M10 20V4M16 20v-7M22 20H2",
+  copybank: "M5 4h10l4 4v12H5zM14 4v5h5M8 13h8M8 17h5",
+  ruler: "M4 14l10-10 6 6L10 20zM8 8l2 2M11 5l2 2M5 11l2 2",
+  settings: "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM19.4 13a7.8 7.8 0 0 0 0-2l2-1.5-2-3.5-2.4 1a7.8 7.8 0 0 0-1.7-1L15 3H9l-.3 2.5a7.8 7.8 0 0 0-1.7 1l-2.4-1-2 3.5L2.6 11a7.8 7.8 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a7.8 7.8 0 0 0 1.7 1L9 21h6l.3-2.5a7.8 7.8 0 0 0 1.7-1l2.4 1 2-3.5z",
+  pin: "M9 3h6l-1 6 3 3v2h-5v5l-1 2-1-2v-5H4v-2l3-3z",
+  plus: "M12 5v14M5 12h14",
+  bell: "M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9zM10.5 21a2 2 0 0 0 3 0",
+  copy: "M9 9h11v11H9zM5 15H4V4h11v1",
+  eye: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
+  send: "M22 2L11 13M22 2l-7 20-4-9-9-4z",
+  edit: "M4 20h4L19 9l-4-4L4 16zM14 6l4 4",
+  download: "M12 3v12M7 10l5 5 5-5M4 20h16",
+  mail: "M3 5h18v14H3zM3 6l9 7 9-7",
+  filter: "M3 5h18l-7 8v6l-4-2v-4z",
+  check: "M5 12l5 5L20 6",
+  chevron: "M9 6l6 6-6 6",
+  arrowRight: "M5 12h14M13 6l6 6-6 6",
+  grid: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z",
+  doc: "M6 2h9l5 5v15H6zM14 2v6h6M9 13h6M9 17h6",
+  info: "M12 8h.01M11 12h1v5h1M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z",
+  lock: "M6 10V8a6 6 0 0 1 12 0v2M5 10h14v10H5z",
+  trash: "M4 6h16M9 6V4h6v2M6 6l1 14h10l1-14",
+  spark: "M12 2v6M12 16v6M2 12h6M16 12h6M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3",
+};
+function Icon({ name, size = 18, stroke = 1.7, className = "", style = {}, fill = false }) {
+  const d = ICONS[name] || "";
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} style={style}
+      fill={fill ? "currentColor" : "none"} stroke={fill ? "none" : "currentColor"}
+      strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round">
+      <path d={d} />
+    </svg>
+  );
+}
+
+/* ---------------- char util ---------------- */
+function charClass(len, limit) {
+  const amber = limit <= 30 ? limit - 3 : (limit <= 90 ? limit - 5 : limit - 25);
+  if (len > limit) return "red";
+  if (len >= amber) return "amber";
+  return "green";
+}
+function CharPill({ len, limit }) {
+  const c = charClass(len, limit);
+  return <span className={`pill pill-${c}`}>{len}/{limit}</span>;
+}
+
+/* ---------------- Status badge w/ dropdown ---------------- */
+const STATUS_CLASS = {
+  "Not Started": "st-notstarted", "In Progress": "st-inprogress",
+  "Review": "st-review", "Approved": "st-approved", "Live": "st-live",
+};
+function StatusBadge({ status, onChange, size }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+  const statuses = window.LAMF_DATA.statuses;
+  return (
+    <span ref={ref} style={{ position: "relative", display: "inline-block" }}>
+      <span className={`badge ${STATUS_CLASS[status]} ${onChange ? "clickable" : ""}`}
+        style={size === "sm" ? { fontSize: 11, padding: "2px 8px" } : {}}
+        onClick={onChange ? () => setOpen(o => !o) : undefined}>
+        <span className="dot"></span>{status}
+        {onChange && <Icon name="chevron" size={11} style={{ transform: "rotate(90deg)", opacity: .55, marginLeft: 1 }} />}
+      </span>
+      {open && (
+        <div className="menu" style={{ top: "calc(100% + 5px)", left: 0 }}>
+          {statuses.map(s => (
+            <div key={s} className="menu-item" onClick={() => { onChange(s); setOpen(false); }}>
+              <span className={`badge ${STATUS_CLASS[s]}`} style={{ pointerEvents: "none" }}><span className="dot"></span>{s}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
+/* ---------------- Toast system ---------------- */
+const ToastCtx = createContext(() => {});
+function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState([]);
+  const push = useCallback((msg, kind = "ok") => {
+    const id = Math.random().toString(36).slice(2);
+    setToasts(t => [...t, { id, msg, kind }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 2600);
+  }, []);
+  return (
+    <ToastCtx.Provider value={push}>
+      {children}
+      <div className="toast-wrap">
+        {toasts.map(t => (
+          <div key={t.id} className={`toast ${t.kind === "warn" ? "warn" : t.kind === "err" ? "err" : ""}`}>
+            <Icon name={t.kind === "ok" ? "check" : t.kind === "warn" ? "info" : "info"} size={16}
+              style={{ color: t.kind === "ok" ? "var(--gold)" : t.kind === "warn" ? "var(--amber)" : "var(--red)" }} />
+            <span>{t.msg}</span>
+          </div>
+        ))}
+      </div>
+    </ToastCtx.Provider>
+  );
+}
+const useToast = () => useContext(ToastCtx);
+
+/* ---------------- Section header ---------------- */
+function SectionTitle({ children, hint, right }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 12 }}>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: ".02em", color: "var(--navy)", textTransform: "uppercase" }}>{children}</div>
+        {hint && <div style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 2 }}>{hint}</div>}
+      </div>
+      {right}
+    </div>
+  );
+}
+
+/* ---------------- Image placeholder ---------------- */
+function ImageSlot({ label, ratio = "1.91 / 1", note }) {
+  return (
+    <div style={{
+      aspectRatio: ratio, width: "100%", borderRadius: 8, display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", gap: 6, color: "var(--ink-faint)",
+      background: "repeating-linear-gradient(135deg, #f0f1f4, #f0f1f4 10px, #e9ebef 10px, #e9ebef 20px)",
+      border: "1px dashed var(--line-strong)",
+    }}>
+      <Icon name="display" size={20} style={{ opacity: .6 }} />
+      <span style={{ fontFamily: "var(--mono)", fontSize: 11 }}>{label}</span>
+      {note && <span style={{ fontFamily: "var(--mono)", fontSize: 10, opacity: .8 }}>{note}</span>}
+    </div>
+  );
+}
+
+Object.assign(window, { Icon, ICONS, CharPill, charClass, StatusBadge, STATUS_CLASS, ToastProvider, useToast, SectionTitle, ImageSlot });
+</script>
+<script type="text/babel">
+/* Left sidebar navigation. */
+const NAV_GROUPS = [
+  [
+    { id: "dashboard", label: "Dashboard", icon: "dashboard" },
+  ],
+  [
+    { id: "google", label: "Google Search", icon: "search" },
+    { id: "extensions", label: "Extensions", icon: "plug" },
+    { id: "display", label: "Display · PMax", icon: "display" },
+    { id: "demandgen", label: "Demand Gen", icon: "spark" },
+    { id: "meta", label: "Meta Facebook", icon: "facebook" },
+    { id: "bing", label: "Microsoft Bing", icon: "bing" },
+  ],
+  [
+    { id: "compliance", label: "Compliance Review", icon: "compliance" },
+    { id: "tracker", label: "Content Tracker", icon: "chart" },
+    { id: "copybank", label: "Copy Bank", icon: "copybank" },
+    { id: "guidelines", label: "Guidelines", icon: "ruler" },
+  ],
+  [
+    { id: "settings", label: "Settings", icon: "settings" },
+  ],
+];
+
+const sidebarCss = `
+.sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--navy-900); color: #c7d0de;
+  display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+.sidebar-logo { padding: 18px 20px 16px; display: flex; align-items: center; gap: 11px;
+  border-bottom: 1px solid rgba(255,255,255,.07); }
+.sidebar-mark { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  background: linear-gradient(150deg, var(--gold), #b8973f); display: flex; align-items: center; justify-content: center;
+  font-weight: 800; color: var(--navy-900); font-size: 16px; box-shadow: 0 2px 8px rgba(200,169,81,.35); }
+.sidebar-brand { line-height: 1.15; }
+.sidebar-brand .b1 { color: #fff; font-weight: 700; font-size: 13.5px; letter-spacing: -.1px; }
+.sidebar-brand .b2 { color: var(--gold); font-weight: 600; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+.nav { flex: 1; overflow-y: auto; padding: 10px 12px; }
+.nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-color: transparent; }
+.nav-group { padding: 6px 0; }
+.nav-group + .nav-group { border-top: 1px solid rgba(255,255,255,.07); }
+.nav-item { display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 8px;
+  color: #aab4c4; font-weight: 500; font-size: 13.5px; cursor: pointer; position: relative;
+  border-left: 3px solid transparent; transition: background .13s, color .13s; margin: 1px 0; }
+.nav-item:hover { background: rgba(255,255,255,.06); color: #e7ecf3; }
+.nav-item .ic { opacity: .8; flex-shrink: 0; }
+.nav-item.active { background: var(--navy-700); color: #fff; border-left-color: var(--gold); font-weight: 600; }
+.nav-item.active .ic { opacity: 1; color: var(--gold); }
+.nav-item .nav-count { margin-left: auto; font-size: 10.5px; font-family: var(--mono); background: rgba(255,255,255,.1);
+  color: #cbd4e1; padding: 1px 6px; border-radius: 10px; }
+.nav-item.active .nav-count { background: rgba(200,169,81,.22); color: var(--gold); }
+.sidebar-foot { padding: 14px 18px; border-top: 1px solid rgba(255,255,255,.07); font-size: 11px; color: #6f7b8e; }
+.sidebar-foot .reg { display: flex; align-items: center; gap: 6px; color: #93cda9; font-weight: 600; margin-bottom: 4px; }
+@media (max-width: 860px) { .sidebar { display: none; } }
+`;
+
+function Sidebar({ active, onNav, counts }) {
+  return (
+    <aside className="sidebar">
+      <style>{sidebarCss}</style>
+      <div className="sidebar-logo">
+        <div className="sidebar-mark">S</div>
+        <div className="sidebar-brand">
+          <div className="b1">Shriram Credit</div>
+          <div className="b2">LAMF Ad Tool</div>
+        </div>
+      </div>
+      <nav className="nav">
+        {NAV_GROUPS.map((group, gi) => (
+          <div className="nav-group" key={gi}>
+            {group.map(item => (
+              <div key={item.id} className={`nav-item ${active === item.id ? "active" : ""}`}
+                onClick={() => onNav(item.id)}>
+                <Icon name={item.icon} size={17} className="ic" stroke={1.7} />
+                <span>{item.label}</span>
+                {counts && counts[item.id] != null && <span className="nav-count">{counts[item.id]}</span>}
+              </div>
+            ))}
+          </div>
+        ))}
+      </nav>
+      <div className="sidebar-foot">
+        <div className="reg"><Icon name="compliance" size={13} /> SEBI &amp; RBI Regulated</div>
+        Shriram Credit · since 1974
+      </div>
+    </aside>
+  );
+}
+
+Object.assign(window, { Sidebar, NAV_GROUPS });
+</script>
+<script type="text/babel">
+/* SCREEN 2 — Google Search Ad Writer (HERO). Left copy editor + right live previews. */
+
+/* --- A single editable copy row (headline or description) --- */
+function CopyRow({ idx, prefix, item, limit, onText, onPin, multiline }) {
+  const len = item.text.length;
+  const pinned = item.pin != null;
+  return (
+    <div style={{
+      display: "flex", alignItems: multiline ? "flex-start" : "center", gap: 9, padding: "6px 8px",
+      borderRadius: 8, background: pinned ? "var(--gold-tint)" : "transparent",
+      boxShadow: pinned ? "inset 0 0 0 1px var(--gold-soft)" : "none", transition: "background .15s",
+    }}>
+      <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)", width: 30, flexShrink: 0,
+        fontWeight: 500, paddingTop: multiline ? 9 : 0 }}>{prefix}{idx + 1}</span>
+      <button title={pinned ? `Pinned to position ${item.pin}` : "Pin position"} onClick={() => onPin(idx)}
+        style={{ flexShrink: 0, border: "none", background: pinned ? "var(--gold)" : "#eef0f3",
+          width: 26, height: 26, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center",
+          color: pinned ? "var(--navy-900)" : "var(--ink-faint)", marginTop: multiline ? 6 : 0,
+          boxShadow: pinned ? "0 1px 4px rgba(200,169,81,.4)" : "none" }}>
+        {pinned ? <Icon name="pin" size={13} fill /> : <Icon name="pin" size={13} />}
+        {pinned && <span style={{ position: "absolute", fontSize: 8, fontWeight: 800, marginTop: 18, marginLeft: 1 }}></span>}
+      </button>
+      {multiline ? (
+        <textarea className="input" rows={2} value={item.text} onChange={e => onText(idx, e.target.value)}
+          style={{ resize: "vertical", lineHeight: 1.45, fontSize: 13, minHeight: 52 }} />
+      ) : (
+        <input className="input" value={item.text} onChange={e => onText(idx, e.target.value)} style={{ fontSize: 13 }} />
+      )}
+      <span style={{ flexShrink: 0, marginTop: multiline ? 9 : 0 }}><CharPill len={len} limit={limit} /></span>
+      {pinned && <span style={{ flexShrink: 0, fontFamily: "var(--mono)", fontSize: 10, fontWeight: 600, color: "var(--gold)",
+        background: "#fff", border: "1px solid var(--gold-soft)", borderRadius: 5, padding: "2px 5px", marginTop: multiline ? 8 : 0 }}>
+        PIN {item.pin}</span>}
+    </div>
+  );
+}
+
+/* --- Google desktop ad preview --- */
+function GooglePreview({ ad, mobile }) {
+  const hls = ad.headlines.filter(h => h.text.trim());
+  // pinned first by position, then rest
+  const pinned = hls.filter(h => h.pin).sort((a, b) => a.pin - b.pin);
+  const unpinned = hls.filter(h => !h.pin);
+  const ordered = [];
+  const used = new Set();
+  for (let pos = 1; pos <= 3; pos++) {
+    const p = pinned.find(h => h.pin === pos && !used.has(h));
+    if (p) { ordered.push(p); used.add(p); }
+    else { const u = unpinned.find(h => !used.has(h)); if (u) { ordered.push(u); used.add(u); } }
+  }
+  const shownHls = mobile ? ordered.slice(0, 2) : ordered.slice(0, 3);
+  const descs = ad.descriptions.filter(d => d.text.trim());
+  const dPin = descs.filter(d => d.pin).sort((a, b) => a.pin - b.pin);
+  const dRest = descs.filter(d => !d.pin);
+  const shownD = [...dPin, ...dRest].slice(0, mobile ? 1 : 2);
+  const host = "shriramcredit.com";
+  const path = [ad.path1, ad.path2].filter(Boolean).join("/");
+
+  return (
+    <div style={{ fontFamily: "arial, sans-serif", color: "#202124", lineHeight: 1.4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+        <span style={{ fontWeight: 700, fontSize: 12 }}>Sponsored</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+        <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#1A2B4A", color: "#C8A951",
+          display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, flexShrink: 0 }}>S</div>
+        <div style={{ lineHeight: 1.2 }}>
+          <div style={{ fontSize: 14, color: "#202124", fontWeight: 500 }}>Shriram Credit</div>
+          <div style={{ fontSize: 12, color: "#5f6368" }}>{host}{path ? " › " + path : ""}</div>
+        </div>
+      </div>
+      <div style={{ fontSize: mobile ? 18 : 20, lineHeight: 1.25, color: "#1a0dab", fontWeight: 400, marginTop: 4 }}>
+        {shownHls.map((h, i) => (
+          <span key={i}>
+            <span style={{ color: "#1a0dab" }}>{h.text}</span>
+            {i < shownHls.length - 1 && <span style={{ color: "#5f6368", fontWeight: 400 }}>{" | "}</span>}
+          </span>
+        ))}
+        {shownHls.length === 0 && <span style={{ color: "#9aa0a6" }}>Your headlines appear here…</span>}
+      </div>
+      <div style={{ fontSize: 14, color: "#4d5156", marginTop: 5, ...(mobile ? { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } : {}) }}>
+        {shownD.map(d => d.text).join(" ") || "Your descriptions appear here…"}
+      </div>
+      {!mobile && (
+        <div style={{ display: "flex", gap: 18, marginTop: 11, flexWrap: "wrap" }}>
+          {window.LAMF_DATA.sitelinks.slice(0, 4).map((s, i) => (
+            <div key={i} style={{ minWidth: 120 }}>
+              <div style={{ color: "#1a0dab", fontSize: 14 }}>{s[0]}</div>
+              <div style={{ color: "#4d5156", fontSize: 12, lineHeight: 1.3 }}>{s[1]}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {mobile && (
+        <button style={{ marginTop: 10, width: "100%", border: "1px solid #1a73e8", color: "#1a73e8",
+          background: "#fff", borderRadius: 18, padding: "7px 0", fontWeight: 600, fontSize: 13 }}>
+          Apply Now
+        </button>
+      )}
+    </div>
+  );
+}
+
+function PhoneFrame({ children }) {
+  return (
+    <div style={{ width: 248, margin: "0 auto", border: "9px solid #1c2531", borderRadius: 30,
+      background: "#fff", boxShadow: "var(--shadow-md)", overflow: "hidden" }}>
+      <div style={{ height: 22, background: "#1c2531", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+        <div style={{ width: 60, height: 5, background: "#3a4456", borderRadius: 5, marginTop: 4 }}></div>
+      </div>
+      <div style={{ padding: "10px 11px 14px" }}>{children}</div>
+    </div>
+  );
+}
+
+function GoogleSearchScreen({ store }) {
+  const D = window.LAMF_DATA;
+  const toast = useToast();
+  const [campId, setCampId] = store.useCampaign();
+  const [variations, setVariations] = useState(1);
+  const camp = store.getCampaign(campId);
+
+  const updateHL = (i, text) => store.editCampaign(campId, c => { c.headlines[i].text = text; });
+  const updateD = (i, text) => store.editCampaign(campId, c => { c.descriptions[i].text = text; });
+  const pinHL = (i) => store.editCampaign(campId, c => {
+    const cur = c.headlines[i].pin;
+    if (cur != null) { c.headlines[i].pin = null; return; }
+    const usedPins = c.headlines.filter(h => h.pin).map(h => h.pin);
+    const next = [1, 2, 3].find(p => !usedPins.includes(p));
+    if (!next) { toast("All 3 headline pins are in use — unpin one first", "warn"); return; }
+    c.headlines[i].pin = next;
+  });
+  const pinD = (i) => store.editCampaign(campId, c => {
+    const cur = c.descriptions[i].pin;
+    if (cur != null) { c.descriptions[i].pin = null; return; }
+    const usedPins = c.descriptions.filter(d => d.pin).map(d => d.pin);
+    const next = [1, 2].find(p => !usedPins.includes(p));
+    if (!next) { toast("Both description pins are in use — unpin one first", "warn"); return; }
+    c.descriptions[i].pin = next;
+  });
+  const editField = (field, val) => store.editCampaign(campId, c => { c[field] = val; });
+
+  const hlOver = camp.headlines.filter(h => h.text.length > D.limits.headline).length;
+  const dOver = camp.descriptions.filter(d => d.text.length > D.limits.description).length;
+  const hlFilled = camp.headlines.filter(h => h.text.trim()).length;
+
+  const save = () => {
+    const over = hlOver + dOver;
+    if (over > 0) toast(`Saved — but ${over} field${over > 1 ? "s are" : " is"} over the limit`, "warn");
+    else toast("Copy saved", "ok");
+  };
+  const copyToBing = () => { store.copyToBing(campId); toast("Ad copy duplicated to Microsoft Bing", "ok"); };
+
+  return (
+    <div className="screen-in">
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.15fr) minmax(360px,.85fr)", gap: 0, alignItems: "start" }}
+        className="gs-grid">
+        {/* LEFT — editor */}
+        <div style={{ padding: "22px 24px", borderRight: "1px solid var(--line)", minHeight: "calc(100vh - 64px)" }}>
+          {/* setup */}
+          <div className="card" style={{ padding: 16, marginBottom: 18 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label className="field-label">Campaign</label>
+                <select className="select" value={campId} onChange={e => setCampId(e.target.value)}>
+                  {D.campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div><label className="field-label">Ad Group</label><input className="input" value={camp.adGroup} onChange={e => editField("adGroup", e.target.value)} /></div>
+              <div><label className="field-label">Account</label><input className="input" value={camp.account} onChange={e => editField("account", e.target.value)} /></div>
+              <div><label className="field-label">Theme / Intent</label><input className="input" value={camp.theme} onChange={e => editField("theme", e.target.value)} /></div>
+              <div>
+                <label className="field-label">Status</label>
+                <div style={{ paddingTop: 3 }}><StatusBadge status={camp.status} onChange={s => editField("status", s)} /></div>
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}><label className="field-label">Final URL</label><input className="input" value={camp.finalUrl} onChange={e => editField("finalUrl", e.target.value)} /></div>
+              <div>
+                <label className="field-label">Display Path 1 <span style={{ textTransform: "none", fontWeight: 500 }}>(≤15)</span></label>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input className="input" maxLength={20} value={camp.path1} onChange={e => editField("path1", e.target.value)} />
+                  <CharPill len={camp.path1.length} limit={15} />
+                </div>
+              </div>
+              <div>
+                <label className="field-label">Display Path 2 <span style={{ textTransform: "none", fontWeight: 500 }}>(≤15)</span></label>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input className="input" maxLength={20} value={camp.path2} onChange={e => editField("path2", e.target.value)} />
+                  <CharPill len={camp.path2.length} limit={15} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* headlines */}
+          <SectionTitle hint={`${hlFilled} written · select up to 15 for the RSA`}
+            right={<span className="badge st-review" style={{ fontSize: 11 }}><span className="dot"></span>{camp.headlines.filter(h => h.pin).length}/3 pinned</span>}>
+            Headlines <span style={{ color: "var(--ink-faint)", fontWeight: 500, textTransform: "none" }}>· ≤30 chars</span>
+          </SectionTitle>
+          <div className="card" style={{ padding: 6, marginBottom: 18 }}>
+            {camp.headlines.map((h, i) => (
+              <CopyRow key={i} idx={i} prefix="HL" item={h} limit={D.limits.headline} onText={updateHL} onPin={pinHL} />
+            ))}
+          </div>
+
+          {/* descriptions */}
+          <SectionTitle hint="Select up to 4 for the RSA"
+            right={<span className="badge st-review" style={{ fontSize: 11 }}><span className="dot"></span>{camp.descriptions.filter(d => d.pin).length}/2 pinned</span>}>
+            Descriptions <span style={{ color: "var(--ink-faint)", fontWeight: 500, textTransform: "none" }}>· ≤90 chars</span>
+          </SectionTitle>
+          <div className="card" style={{ padding: 6, marginBottom: 18 }}>
+            {camp.descriptions.map((d, i) => (
+              <CopyRow key={i} idx={i} prefix="D" item={d} limit={D.limits.description} onText={updateD} onPin={pinD} multiline />
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button className="btn" style={{ flex: 1, justifyContent: "center" }}
+              onClick={() => setVariations(v => v + 1)}><Icon name="plus" size={15} /> Add New Ad Variation</button>
+            <button className="btn btn-ghost" onClick={copyToBing}><Icon name="copy" size={15} /> Copy to Bing</button>
+          </div>
+
+          {variations > 1 && Array.from({ length: variations - 1 }).map((_, vi) => (
+            <div key={vi} className="card" style={{ marginTop: 16, padding: 16, borderStyle: "dashed", background: "#fcfcfd" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <span style={{ fontWeight: 700, fontSize: 13, color: "var(--navy)" }}>RSA Variation {vi + 2}</span>
+                <button className="btn btn-ghost btn-sm" onClick={() => setVariations(v => v - 1)}><Icon name="trash" size={13} /> Remove</button>
+              </div>
+              <div className="empty-tip">New blank RSA block for <b>{camp.name}</b> — add headlines &amp; descriptions to A/B test against Variation 1. (Demo block)</div>
+            </div>
+          ))}
+        </div>
+
+        {/* RIGHT — previews */}
+        <div style={{ padding: "22px 24px", position: "sticky", top: 64, alignSelf: "start" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--navy)", textTransform: "uppercase", letterSpacing: ".02em" }}>Live Ad Preview</div>
+            <button className="btn btn-primary btn-sm" onClick={save}><Icon name="check" size={14} /> Save Copy</button>
+          </div>
+
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-faint)", marginBottom: 7, textTransform: "uppercase", letterSpacing: ".05em" }}>Desktop · Google Search</div>
+          <div className="card" style={{ padding: 16, marginBottom: 18 }}>
+            <GooglePreview ad={camp} />
+          </div>
+
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-faint)", marginBottom: 7, textTransform: "uppercase", letterSpacing: ".05em" }}>Mobile</div>
+          <div style={{ marginBottom: 20 }}>
+            <PhoneFrame><GooglePreview ad={camp} mobile /></PhoneFrame>
+          </div>
+
+          {/* pinning guide */}
+          <div className="card" style={{ padding: 14, background: "var(--navy)", border: "none", color: "#dfe5ee" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
+              <Icon name="pin" size={14} style={{ color: "var(--gold)" }} fill />
+              <span style={{ fontWeight: 700, fontSize: 12.5, color: "#fff", textTransform: "uppercase", letterSpacing: ".03em" }}>Pinning Guide</span>
+            </div>
+            {D.pinningGuide.map((p, i) => (
+              <div key={i} style={{ display: "flex", gap: 9, padding: "5px 0", borderTop: i ? "1px solid rgba(255,255,255,.08)" : "none", alignItems: "baseline" }}>
+                <span style={{ color: p.pinned ? "var(--gold)" : "#8a96a8", fontWeight: 700, fontSize: 12, minWidth: 74, flexShrink: 0 }}>{p.slot}</span>
+                <span style={{ fontSize: 12, lineHeight: 1.4 }}>{p.rule}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <style>{`
+        @media (max-width: 1080px) {
+          .gs-grid { grid-template-columns: 1fr !important; }
+          .gs-grid > div:first-child { border-right: none !important; border-bottom: 1px solid var(--line); min-height: 0 !important; }
+          .gs-grid > div:last-child { position: static !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+Object.assign(window, { GoogleSearchScreen, GooglePreview });
+</script>
+<script type="text/babel">
+/* SCREEN 1 — Dashboard. */
+const CHANNEL_ICON = { google: "search", meta: "facebook", bing: "bing" };
+
+function StatCard({ label, value, sub, icon, accent }) {
+  return (
+    <div className="card" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 2 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>{label}</span>
+        <div style={{ width: 30, height: 30, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+          background: accent === "gold" ? "var(--gold-tint)" : "#eef1f6", color: accent === "gold" ? "var(--gold)" : "var(--navy)" }}>
+          <Icon name={icon} size={16} />
+        </div>
+      </div>
+      <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-.02em", color: "var(--navy)", lineHeight: 1.1 }}>{value}</div>
+      <div style={{ fontSize: 12, color: "var(--ink-faint)" }}>{sub}</div>
+    </div>
+  );
+}
+
+function progressOf(camp, D) {
+  const filled = camp.headlines.filter(h => h.text.trim()).length;
+  return Math.round((filled / 15) * 100);
+}
+
+function CampaignCard({ camp, onNav, onStatus, store }) {
+  const D = window.LAMF_DATA;
+  const pct = progressOf(camp, D);
+  const filled = camp.headlines.filter(h => h.text.trim()).length;
+  return (
+    <div className="card" style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", transition: "box-shadow .15s, transform .15s" }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = "var(--shadow-md)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}>
+      <div style={{ padding: "15px 16px 12px", display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "#eef1f6", color: "var(--blue)",
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Icon name="search" size={16} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)", letterSpacing: "-.01em" }}>{camp.name}</div>
+              <div style={{ fontSize: 11.5, color: "var(--ink-faint)" }}>Google Search · RSA</div>
+            </div>
+          </div>
+          <StatusBadge status={camp.status} onChange={s => onStatus(camp.id, s)} size="sm" />
+        </div>
+
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 5, color: "var(--ink-soft)" }}>
+            <span>Headlines written</span>
+            <span style={{ fontFamily: "var(--mono)", fontWeight: 500 }}>{filled}/15</span>
+          </div>
+          <div style={{ height: 6, background: "#eef0f3", borderRadius: 4, overflow: "hidden" }}>
+            <div style={{ width: pct + "%", height: "100%", borderRadius: 4,
+              background: pct >= 100 ? "var(--green)" : "linear-gradient(90deg, var(--navy), var(--navy-600))", transition: "width .4s" }}></div>
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", borderTop: "1px solid var(--line)" }}>
+        <button className="cardact" onClick={() => onNav("google", camp.id)}><Icon name="edit" size={14} /> Edit Copy</button>
+        <button className="cardact" onClick={() => onNav("google", camp.id)}><Icon name="eye" size={14} /> Preview</button>
+        <button className="cardact" onClick={() => onNav("compliance")}><Icon name="send" size={14} /> Compliance</button>
+      </div>
+      <style>{`.cardact{flex:1;border:none;background:#fff;padding:9px 4px;font-size:12px;font-weight:600;color:var(--ink-soft);
+        display:flex;align-items:center;justify-content:center;gap:5px;border-right:1px solid var(--line);transition:background .12s;}
+        .cardact:last-child{border-right:none;} .cardact:hover{background:#f5f6f8;color:var(--navy);}`}</style>
+    </div>
+  );
+}
+
+function DashboardScreen({ store, onNav }) {
+  const D = window.LAMF_DATA;
+  const camps = store.campaigns;
+  const totalHL = camps.reduce((n, c) => n + c.headlines.filter(h => h.text.trim()).length, 0);
+  const totalD = camps.reduce((n, c) => n + c.descriptions.filter(d => d.text.trim()).length, 0);
+  const approved = camps.filter(c => c.status === "Approved" || c.status === "Live").length;
+  const pending = camps.length - approved;
+
+  const activity = [
+    { who: "Priya Nair", act: "edited headlines on", what: "Personal Loan Intercept", when: "12 min ago", icon: "edit" },
+    { who: "A. Mehta", act: "approved extensions for", what: "All Campaigns", when: "1 hr ago", icon: "check" },
+    { who: "Rohan Das", act: "sent for review", what: "Low-Interest Loan", when: "3 hrs ago", icon: "send" },
+    { who: "Sara Iyer", act: "added 5 callouts to", what: "Copy Bank", when: "Yesterday", icon: "plus" },
+    { who: "System", act: "flagged 2 headlines over limit on", what: "Instant Cash", when: "Yesterday", icon: "info" },
+  ];
+
+  return (
+    <div className="screen-in" style={{ padding: "24px 28px", maxWidth: 1380, margin: "0 auto" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 22, alignItems: "start" }} className="dash-grid">
+        <div>
+          {/* stats */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }} className="stat-grid">
+            <StatCard label="Total Campaigns" value={camps.length} sub="Google Search · RSA" icon="search" />
+            <StatCard label="Headlines Written" value={totalHL} sub={`across ${camps.length} campaigns`} icon="edit" accent="gold" />
+            <StatCard label="Descriptions" value={totalD} sub="ready for RSA" icon="doc" />
+            <StatCard label="Compliance" value={`${approved}/${camps.length}`} sub={`${pending} pending review`} icon="compliance" accent="gold" />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "var(--navy)", letterSpacing: "-.01em" }}>Campaigns</div>
+              <div style={{ fontSize: 12.5, color: "var(--ink-faint)" }}>LAMF @ 10.5%* p.a. · Loan Against Mutual Funds</div>
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={() => onNav("google")}><Icon name="plus" size={14} /> New Campaign</button>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
+            {camps.map(c => (
+              <CampaignCard key={c.id} camp={c} store={store} onNav={onNav}
+                onStatus={(id, s) => store.editCampaign(id, x => { x.status = s; })} />
+            ))}
+          </div>
+        </div>
+
+        {/* right rail */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, position: "sticky", top: 88 }} className="dash-rail">
+          {/* compliance summary */}
+          <div className="card" style={{ padding: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--navy)", marginBottom: 12, textTransform: "uppercase", letterSpacing: ".03em" }}>Compliance Summary</div>
+            {D.statuses.map(s => {
+              const n = camps.filter(c => c.status === s).length;
+              return (
+                <div key={s} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0" }}>
+                  <StatusBadge status={s} size="sm" />
+                  <span style={{ fontFamily: "var(--mono)", fontWeight: 600, fontSize: 13, color: n ? "var(--navy)" : "var(--ink-faint)" }}>{n}</span>
+                </div>
+              );
+            })}
+            <button className="btn btn-sm" style={{ width: "100%", justifyContent: "center", marginTop: 12 }} onClick={() => onNav("compliance")}>
+              <Icon name="compliance" size={14} /> Open Compliance Review
+            </button>
+          </div>
+
+          {/* activity */}
+          <div className="card" style={{ padding: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--navy)", marginBottom: 12, textTransform: "uppercase", letterSpacing: ".03em" }}>Activity Feed</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {activity.map((a, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, padding: "8px 0", borderTop: i ? "1px solid var(--line)" : "none" }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 7, background: "#eef1f6", color: "var(--navy)", flexShrink: 0,
+                    display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={a.icon} size={13} /></div>
+                  <div style={{ fontSize: 12.5, lineHeight: 1.45 }}>
+                    <b style={{ color: "var(--navy)" }}>{a.who}</b> <span style={{ color: "var(--ink-soft)" }}>{a.act}</span> <b style={{ color: "var(--ink)" }}>{a.what}</b>
+                    <div style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 1 }}>{a.when}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      <style>{`@media (max-width: 1080px){ .dash-grid{grid-template-columns:1fr !important;} .dash-rail{position:static !important;}
+        .stat-grid{grid-template-columns:repeat(2,1fr) !important;} }`}</style>
+    </div>
+  );
+}
+
+Object.assign(window, { DashboardScreen });
+</script>
+<script type="text/babel">
+/* Remaining screens: Extensions, Meta, Bing, Compliance, Tracker, CopyBank, Guidelines, + stubs. */
+
+/* ---------- shared page wrapper ---------- */
+function Page({ children, max = 1380, pad = "24px 28px" }) {
+  return <div className="screen-in" style={{ padding: pad, maxWidth: max, margin: "0 auto" }}>{children}</div>;
+}
+function PageHead({ title, sub, actions }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 20, gap: 16, flexWrap: "wrap" }}>
+      <div>
+        <div style={{ fontSize: 19, fontWeight: 700, color: "var(--navy)", letterSpacing: "-.015em" }}>{title}</div>
+        {sub && <div style={{ fontSize: 13, color: "var(--ink-faint)", marginTop: 2 }}>{sub}</div>}
+      </div>
+      {actions && <div style={{ display: "flex", gap: 9 }}>{actions}</div>}
+    </div>
+  );
+}
+
+/* ================= SCREEN 3 — EXTENSIONS ================= */
+function ExtensionsScreen({ store }) {
+  const D = window.LAMF_DATA;
+  const toast = useToast();
+  const TABS = ["Sitelinks", "Callouts", "Structured Snippets", "Image", "Promotion"];
+  const [tab, setTab] = useState("Sitelinks");
+  const [extra, setExtra] = useState({});
+  const addRow = () => { setExtra(e => ({ ...e, [tab]: (e[tab] || 0) + 1 })); toast("New row added", "ok"); };
+
+  const tabCss = `.exttab{padding:9px 15px;font-size:13px;font-weight:600;color:var(--ink-soft);border:none;background:none;
+    border-bottom:2px solid transparent;cursor:pointer;} .exttab.on{color:var(--navy);border-bottom-color:var(--gold);}
+    .exttbl{width:100%;border-collapse:collapse;font-size:13px;} .exttbl th{text-align:left;font-size:11px;text-transform:uppercase;
+    letter-spacing:.05em;color:var(--ink-faint);font-weight:600;padding:9px 12px;border-bottom:1px solid var(--line);}
+    .exttbl td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;} .exttbl tr:last-child td{border-bottom:none;}
+    .exttbl input{border:1px solid transparent;border-radius:6px;padding:5px 7px;font-size:13px;width:100%;background:transparent;}
+    .exttbl input:hover{border-color:var(--line);} .exttbl input:focus{outline:none;border-color:var(--navy-600);background:#fff;box-shadow:0 0 0 3px rgba(26,43,74,.08);}`;
+
+  return (
+    <Page>
+      <PageHead title="Ad Extensions Manager" sub="Sitelinks · Callouts · Structured Snippets · Images · Promotions — pre-loaded from LAMF workbook"
+        actions={<button className="btn btn-primary" onClick={addRow}><Icon name="plus" size={15} /> Add Row</button>} />
+      <style>{tabCss}</style>
+      <div className="card" style={{ overflow: "hidden" }}>
+        <div style={{ display: "flex", gap: 4, padding: "4px 10px 0", borderBottom: "1px solid var(--line)", overflowX: "auto" }}>
+          {TABS.map(t => <button key={t} className={`exttab ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>)}
+        </div>
+
+        {tab === "Sitelinks" && (
+          <table className="exttbl"><thead><tr>
+            <th>Account</th><th>Title (≤25)</th><th></th><th>Description 1 (≤35)</th><th></th><th>Description 2 (≤35)</th><th></th><th>Status</th>
+          </tr></thead><tbody>
+            {D.sitelinks.map((s, i) => (
+              <tr key={i}>
+                <td style={{ color: "var(--ink-faint)", whiteSpace: "nowrap", fontSize: 12 }}>LAMF Search</td>
+                <td><input defaultValue={s[0]} /></td><td><CharPill len={s[0].length} limit={25} /></td>
+                <td><input defaultValue={s[1]} /></td><td><CharPill len={s[1].length} limit={35} /></td>
+                <td><input defaultValue={s[2]} /></td><td><CharPill len={s[2].length} limit={35} /></td>
+                <td><StatusBadge status={i < 4 ? "Approved" : "Review"} size="sm" /></td>
+              </tr>
+            ))}
+          </tbody></table>
+        )}
+
+        {tab === "Callouts" && (
+          <table className="exttbl"><thead><tr><th style={{ width: 50 }}>#</th><th>Callout Text (≤25)</th><th>Chars</th><th>Status</th></tr></thead><tbody>
+            {D.callouts.map((c, i) => (
+              <tr key={i}>
+                <td style={{ color: "var(--ink-faint)", fontFamily: "var(--mono)", fontSize: 12 }}>{String(i + 1).padStart(2, "0")}</td>
+                <td><input defaultValue={c} /></td><td><CharPill len={c.length} limit={25} /></td>
+                <td><StatusBadge status="Approved" size="sm" /></td>
+              </tr>
+            ))}
+          </tbody></table>
+        )}
+
+        {tab === "Structured Snippets" && (
+          <table className="exttbl"><thead><tr><th>Header</th><th>Values</th><th>Count</th></tr></thead><tbody>
+            {D.snippets.map((s, i) => (
+              <tr key={i}><td style={{ fontWeight: 600, color: "var(--navy)" }}>{s.header}</td>
+                <td><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{s.values.map((v, j) =>
+                  <span key={j} style={{ background: "#eef1f6", borderRadius: 6, padding: "3px 9px", fontSize: 12.5 }}>{v}</span>)}</div></td>
+                <td style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-soft)" }}>{s.values.length} vals</td></tr>
+            ))}
+          </tbody></table>
+        )}
+
+        {tab === "Image" && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 14, padding: 16 }}>
+            {D.images.map((im, i) => (
+              <div key={i} className="card" style={{ padding: 10 }}>
+                <ImageSlot label={im[2]} note="drop creative" ratio={im[2] === "1200×1200" ? "1/1" : "1.91/1"} />
+                <div style={{ fontWeight: 600, fontSize: 13, marginTop: 8, color: "var(--navy)" }}>{im[0]}</div>
+                <div style={{ fontSize: 11.5, color: "var(--ink-faint)" }}>{im[1]}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === "Promotion" && (
+          <table className="exttbl"><thead><tr><th>Occasion</th><th>Promo Text (≤25)</th><th>Chars</th><th>Start</th><th>End</th><th>Status</th></tr></thead><tbody>
+            {D.promotions.map((p, i) => (
+              <tr key={i}><td><input defaultValue={p[0]} /></td><td><input defaultValue={p[1]} /></td>
+                <td><CharPill len={p[4]} limit={25} /></td><td style={{ color: "var(--ink-soft)" }}>{p[2] || "—"}</td>
+                <td style={{ color: "var(--ink-soft)" }}>{p[3] || "—"}</td><td><StatusBadge status={i === 0 ? "Live" : "Not Started"} size="sm" /></td></tr>
+            ))}
+          </tbody></table>
+        )}
+
+        {extra[tab] > 0 && Array.from({ length: extra[tab] }).map((_, i) => (
+          <div key={i} style={{ padding: "10px 16px", borderTop: "1px dashed var(--line-strong)", color: "var(--ink-faint)", fontSize: 12.5 }}>
+            + New blank {tab} row — fill in the columns above. (Demo)
+          </div>
+        ))}
+      </div>
+    </Page>
+  );
+}
+
+/* ================= SCREEN 5 — BING (reuses Google preview) ================= */
+function BingPreview({ ad }) {
+  const hls = ad.headlines.filter(h => h.text.trim());
+  const pinned = hls.filter(h => h.pin).sort((a, b) => a.pin - b.pin);
+  const rest = hls.filter(h => !h.pin);
+  const shown = [...pinned, ...rest].slice(0, 3);
+  const descs = ad.descriptions.filter(d => d.text.trim());
+  const path = [ad.path1, ad.path2].filter(Boolean).join("/");
+  return (
+    <div style={{ fontFamily: "'Segoe UI', arial, sans-serif", color: "#202124" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, fontSize: 12, color: "#5f6368" }}>
+        <span style={{ fontWeight: 700, color: "#0078D4" }}>Ad</span>
+        <span>·</span><span>shriramcredit.com{path ? "/" + path : ""}</span>
+      </div>
+      <div style={{ fontSize: 19, color: "#0078D4", lineHeight: 1.25 }}>
+        {shown.map((h, i) => <span key={i}>{h.text}{i < shown.length - 1 ? <span style={{ color: "#5f6368" }}> | </span> : ""}</span>)}
+        {shown.length === 0 && <span style={{ color: "#9aa0a6" }}>Headlines appear here…</span>}
+      </div>
+      <div style={{ fontSize: 14, color: "#4d5156", marginTop: 5 }}>{descs.slice(0, 2).map(d => d.text).join(" ") || "Descriptions appear here…"}</div>
+    </div>
+  );
+}
+function BingScreen({ store }) {
+  const D = window.LAMF_DATA;
+  const toast = useToast();
+  const [campId, setCampId] = useState(store.bingFrom || D.campaigns[0].id);
+  const camp = store.getCampaign(campId);
+  const editField = (f, v) => store.editCampaign(campId, c => { c[f] = v; });
+  const updateHL = (i, t) => store.editCampaign(campId, c => { c.headlines[i].text = t; });
+  return (
+    <div className="screen-in" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.1fr) minmax(340px,.9fr)", alignItems: "start" }}>
+      <div style={{ padding: "22px 24px", borderRight: "1px solid var(--line)", minHeight: "calc(100vh - 64px)" }}>
+        <PageHead title="Microsoft Bing — RSA" sub="Same RSA format as Google · 15 Headlines ≤30 · 4 Descriptions ≤90" />
+        <div className="card" style={{ padding: 14, marginBottom: 16 }}>
+          <label className="field-label">Campaign</label>
+          <select className="select" value={campId} onChange={e => setCampId(e.target.value)}>
+            {D.campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        <SectionTitle hint="Identical to Google RSA limits — Bing recommends min 2 descriptions">Headlines · ≤30 chars</SectionTitle>
+        <div className="card" style={{ padding: 6 }}>
+          {camp.headlines.map((h, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 8px" }}>
+              <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)", width: 30 }}>HL{i + 1}</span>
+              <input className="input" value={h.text} onChange={e => updateHL(i, e.target.value)} style={{ fontSize: 13 }} />
+              <CharPill len={h.text.length} limit={30} />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ padding: "22px 24px", position: "sticky", top: 64 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-faint)", marginBottom: 8, textTransform: "uppercase", letterSpacing: ".05em" }}>Bing Search Preview</div>
+        <div className="card" style={{ padding: 16, marginBottom: 14, borderTop: "3px solid #0078D4" }}>
+          <BingPreview ad={camp} />
+        </div>
+        <div style={{ fontSize: 12, color: "var(--ink-soft)", background: "#eef4fb", border: "1px solid #d3e3f7", borderRadius: 8, padding: "10px 12px" }}>
+          <b style={{ color: "#0066b8" }}>Reach note:</b> Also appears on Yahoo, MSN, DuckDuckGo &amp; the LinkedIn Audience Network.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================= SCREEN 4 — META FACEBOOK ================= */
+function MetaScreen({ store }) {
+  const M = window.LAMF_DATA.meta;
+  const toast = useToast();
+  const TABS = ["Lead Gen", "Retargeting", "Awareness"];
+  const [tab, setTab] = useState("Lead Gen");
+  const [primary, setPrimary] = useState(M.primaryText.map(p => p.text));
+  const [headlines, setHeadlines] = useState(M.headlines.slice());
+  const [linkDesc, setLinkDesc] = useState(M.linkDesc.slice());
+  const [ver, setVer] = useState(0);
+
+  const fieldRow = (label, val, set, limit, multi, meta) => (
+    <div style={{ marginBottom: 10, background: "#fff", border: "1px solid var(--line)", borderRadius: 8, padding: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink-soft)" }}>{label}{meta ? <span style={{ color: "var(--ink-faint)", fontWeight: 500 }}> · {meta}</span> : ""}</span>
+        <CharPill len={val.length} limit={limit} />
+      </div>
+      {multi
+        ? <textarea className="input" rows={2} value={val} onChange={e => set(e.target.value)} style={{ fontSize: 13, resize: "vertical" }} />
+        : <input className="input" value={val} onChange={e => set(e.target.value)} style={{ fontSize: 13 }} />}
+    </div>
+  );
+
+  return (
+    <div className="screen-in" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.1fr) minmax(360px,.9fr)", alignItems: "start" }}>
+      <div style={{ padding: "22px 24px", borderRight: "1px solid var(--line)", minHeight: "calc(100vh - 64px)" }}>
+        <PageHead title="Meta — Facebook + Instagram" sub="Primary Text ≤125 (rec.) · Headline ≤40 · Link Description ≤30" />
+        <div style={{ display: "flex", gap: 4, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
+          {TABS.map(t => <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 14px", fontSize: 13, fontWeight: 600,
+            border: "none", background: "none", borderBottom: "2px solid " + (tab === t ? "var(--gold)" : "transparent"),
+            color: tab === t ? "var(--navy)" : "var(--ink-soft)", cursor: "pointer" }}>{t}</button>)}
+        </div>
+        <div className="card" style={{ padding: 14, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div><label className="field-label">Ad Set</label><input className="input" defaultValue={M.adSet} /></div>
+            <div><label className="field-label">Objective</label><input className="input" defaultValue={M.objective} /></div>
+            <div style={{ gridColumn: "1/-1" }}><label className="field-label">Audience</label><input className="input" defaultValue={M.audience} /></div>
+            <div><label className="field-label">CTA Button</label>
+              <select className="select" defaultValue={M.cta}>{["Apply Now", "Learn More", "Get Offer", "Sign Up", "Get Quote"].map(c => <option key={c}>{c}</option>)}</select></div>
+            <div><label className="field-label">Placement</label><input className="input" defaultValue="Feed · Stories" /></div>
+          </div>
+        </div>
+
+        <SectionTitle hint="Recommended ≤125 chars — truncated in feed">Primary Text · 5 versions</SectionTitle>
+        {primary.map((v, i) => fieldRow(`Version ${i + 1}`, v, val => setPrimary(p => p.map((x, j) => j === i ? val : x)), M.limits.primary, true, M.primaryText[i].use))}
+
+        <div style={{ height: 8 }}></div>
+        <SectionTitle>Headline · 5 versions · ≤40</SectionTitle>
+        {headlines.map((v, i) => fieldRow(`Headline ${i + 1}`, v, val => setHeadlines(h => h.map((x, j) => j === i ? val : x)), M.limits.headline))}
+
+        <div style={{ height: 8 }}></div>
+        <SectionTitle>Link Description · 5 versions · ≤30</SectionTitle>
+        {linkDesc.map((v, i) => fieldRow(`Description ${i + 1}`, v, val => setLinkDesc(d => d.map((x, j) => j === i ? val : x)), M.limits.linkDesc))}
+      </div>
+
+      <div style={{ padding: "22px 24px", position: "sticky", top: 64 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-faint)", textTransform: "uppercase", letterSpacing: ".05em" }}>Facebook Feed Preview</div>
+          <select className="select" style={{ width: "auto", fontSize: 12, padding: "4px 24px 4px 8px" }} value={ver} onChange={e => setVer(+e.target.value)}>
+            {[0, 1, 2, 3, 4].map(i => <option key={i} value={i}>Version {i + 1}</option>)}
+          </select>
+        </div>
+        <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+          <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 9 }}>
+            <div style={{ width: 38, height: 38, borderRadius: "50%", background: "#1A2B4A", color: "#C8A951", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>S</div>
+            <div style={{ lineHeight: 1.2 }}>
+              <div style={{ fontWeight: 600, fontSize: 13.5 }}>Shriram Credit</div>
+              <div style={{ fontSize: 11.5, color: "#65676b" }}>Sponsored · <span style={{ fontSize: 11 }}>🌐</span></div>
+            </div>
+          </div>
+          <div style={{ padding: "0 14px 12px", fontSize: 13.5, lineHeight: 1.45, color: "#1c1e21" }}>{primary[ver]}</div>
+          <ImageSlot label="1200 × 628 px" note="upload creative" ratio="1.91/1" />
+          <div style={{ padding: "11px 14px", background: "#f0f2f5", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11, color: "#65676b", textTransform: "uppercase", letterSpacing: ".02em" }}>shriramcredit.com</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#1c1e21", lineHeight: 1.25 }}>{headlines[ver]}</div>
+              <div style={{ fontSize: 12, color: "#65676b" }}>{linkDesc[ver]}</div>
+            </div>
+            <button style={{ background: "#e4e6eb", border: "none", borderRadius: 6, padding: "8px 14px", fontWeight: 700, fontSize: 13, whiteSpace: "nowrap", color: "#1c1e21" }}>{M.cta}</button>
+          </div>
+        </div>
+
+        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-faint)", marginBottom: 8, textTransform: "uppercase", letterSpacing: ".05em" }}>Instagram Story</div>
+        <div style={{ width: 150, margin: "0 auto" }}>
+          <div style={{ aspectRatio: "9/16", borderRadius: 16, overflow: "hidden", position: "relative",
+            background: "linear-gradient(160deg, #1A2B4A, #34496f)", border: "5px solid #1c2531", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--gold)", color: "var(--navy-900)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 11 }}>S</div>
+              <span style={{ color: "#fff", fontSize: 10, fontWeight: 600 }}>shriramcredit</span>
+            </div>
+            <div style={{ color: "#fff", fontSize: 15, fontWeight: 700, textAlign: "center", lineHeight: 1.3, textShadow: "0 1px 6px rgba(0,0,0,.4)" }}>{headlines[ver]}</div>
+            <button style={{ background: "var(--gold)", color: "var(--navy-900)", border: "none", borderRadius: 8, padding: "8px 0", fontWeight: 700, fontSize: 12 }}>{M.cta} ▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Page, PageHead, ExtensionsScreen, BingScreen, BingPreview, MetaScreen });
+</script>
+<script type="text/babel">
+/* Compliance, Tracker, Copy Bank, Guidelines, generic stubs. */
+
+/* ================= SCREEN 6 — COMPLIANCE REVIEW ================= */
+function ComplianceScreen({ store }) {
+  const D = window.LAMF_DATA;
+  const toast = useToast();
+  const camps = store.campaigns.slice(0, 5);
+  const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  const rows = [];
+  for (let i = 0; i < 15; i++) rows.push({ key: "HL" + (i + 1), type: "hl", i });
+  for (let i = 0; i < 4; i++) rows.push({ key: "D" + (i + 1), type: "d", i });
+
+  const verdicts = store.compliance;
+  const setVerdict = (campId, rowKey, v) => store.setCompliance(campId, rowKey, v);
+  const counts = { Approved: 0, Rejected: 0, Pending: 0 };
+  camps.forEach(c => rows.forEach(r => {
+    const v = (verdicts[c.id] || {})[r.key] || "Pending";
+    counts[v] = (counts[v] || 0) + 1;
+  }));
+
+  const cellOf = (camp, r) => {
+    const item = r.type === "hl" ? camp.headlines[r.i] : camp.descriptions[r.i];
+    if (!item) return { text: "—", len: 0, pinned: false };
+    return { text: item.text, len: item.text.length, pinned: item.pin != null };
+  };
+  const limit = (t) => t === "hl" ? 30 : 90;
+  const VOPTS = ["Pending", "Approved", "Rejected", "Changes"];
+  const vColor = { Pending: "#5b6573", Approved: "var(--green)", Rejected: "var(--red)", Changes: "var(--amber)" };
+
+  return (
+    <Page max={1600}>
+      <div className="no-print">
+        <PageHead title="Compliance Review — LAMF Ad Copy" sub={`Shriram Credit · SEBI & RBI Regulated NBFC · ${today}`}
+          actions={<>
+            <button className="btn" onClick={() => toast("Draft emailed to compliance@shriramcredit.com", "ok")}><Icon name="mail" size={15} /> Email to Compliance</button>
+            <button className="btn btn-gold" onClick={() => window.print()}><Icon name="download" size={15} /> Export PDF</button>
+          </>} />
+        <div style={{ background: "var(--gold-tint)", border: "1px solid var(--gold-soft)", borderRadius: 10, padding: "12px 16px", marginBottom: 18, fontSize: 13, color: "#7a6526", display: "flex", gap: 10, alignItems: "center" }}>
+          <Icon name="info" size={16} style={{ color: "var(--gold)", flexShrink: 0 }} />
+          Please review all copy below and mark each row <b>Approved</b>, <b>Rejected</b>, or <b>Changes Required</b>. Pinned (★ gold) rows are mandatory placements. Status syncs back to the Dashboard.
+        </div>
+      </div>
+
+      <div className="print-head" style={{ display: "none" }}>
+        <h2 style={{ margin: 0 }}>COMPLIANCE REVIEW — LAMF Ad Copy</h2>
+        <p style={{ margin: "2px 0 14px", color: "#555" }}>Shriram Credit · SEBI &amp; RBI Regulated NBFC · {today}</p>
+      </div>
+
+      <div className="card" style={{ overflow: "auto" }}>
+        <table className="comp-tbl">
+          <thead><tr>
+            <th style={{ position: "sticky", left: 0, zIndex: 2, background: "#f7f8fa", minWidth: 56 }}>Row</th>
+            {camps.map(c => <th key={c.id} style={{ minWidth: 220 }}>{c.name}</th>)}
+            <th style={{ minWidth: 130 }}>Verdict (all)</th><th style={{ minWidth: 160 }}>Notes</th>
+          </tr></thead>
+          <tbody>
+            {rows.map(r => {
+              const anyPinned = camps.some(c => cellOf(c, r).pinned);
+              return (
+                <tr key={r.key} style={anyPinned ? { background: "var(--gold-tint)" } : {}}>
+                  <td style={{ position: "sticky", left: 0, background: anyPinned ? "#faf3df" : "#fff", fontWeight: 700, fontFamily: "var(--mono)", fontSize: 12, color: anyPinned ? "var(--gold)" : "var(--ink-soft)" }}>
+                    {anyPinned && "★ "}{r.key}
+                  </td>
+                  {camps.map(c => {
+                    const cell = cellOf(c, r);
+                    return (
+                      <td key={c.id}>
+                        <div style={{ fontSize: 12.5, lineHeight: 1.4, color: cell.text === "—" ? "var(--ink-faint)" : "var(--ink)" }}>{cell.text || "—"}</div>
+                        {cell.text !== "—" && <span style={{ marginTop: 3, display: "inline-block" }}><CharPill len={cell.len} limit={limit(r.type)} /></span>}
+                      </td>
+                    );
+                  })}
+                  <td>
+                    <select className="select no-print" style={{ fontSize: 12, padding: "5px 22px 5px 8px" }}
+                      value={(verdicts.all || {})[r.key] || "Pending"}
+                      onChange={e => { const v = e.target.value; camps.forEach(c => setVerdict(c.id, r.key, v)); store.setCompliance("all", r.key, v); }}>
+                      {VOPTS.map(v => <option key={v}>{v}</option>)}
+                    </select>
+                  </td>
+                  <td><input className="input no-print" placeholder="Add note…" style={{ fontSize: 12, padding: "5px 8px" }} /></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="card" style={{ marginTop: 18, padding: "14px 18px", display: "flex", gap: 26, alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ fontWeight: 700, color: "var(--navy)" }}>Summary</span>
+        {[["Approved", "var(--green)"], ["Rejected", "var(--red)"], ["Pending", "#5b6573"]].map(([k, col]) => (
+          <span key={k} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 14 }}>
+            <span style={{ width: 9, height: 9, borderRadius: "50%", background: col }}></span>
+            <b style={{ color: col }}>{counts[k] || 0}</b> <span style={{ color: "var(--ink-soft)" }}>{k}</span>
+          </span>
+        ))}
+        <span style={{ marginLeft: "auto", fontSize: 12.5, color: "var(--ink-faint)" }}>{camps.length} campaigns × {rows.length} rows = {camps.length * rows.length} cells</span>
+      </div>
+
+      <style>{`.comp-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+        .comp-tbl th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-faint);
+          font-weight:600;padding:10px 12px;border-bottom:1px solid var(--line-strong);background:#f7f8fa;}
+        .comp-tbl td{padding:9px 12px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);vertical-align:top;}
+        .comp-tbl td:last-child{border-right:none;}
+        @media print{ .no-print{display:none !important;} .sidebar,.topbar{display:none !important;}
+          .print-head{display:block !important;} body{background:#fff;} .card{box-shadow:none;border:1px solid #ccc;}
+          .comp-tbl{font-size:10px;} @page{size:landscape;margin:12mm;} }`}</style>
+    </Page>
+  );
+}
+
+/* ================= SCREEN 7 — CONTENT TRACKER ================= */
+function TrackerScreen({ store }) {
+  const D = window.LAMF_DATA;
+  const [rows, setRows] = useState(() => store.trackerRows());
+  const [fCh, setFCh] = useState("All"), [fSt, setFSt] = useState("All"), [fAs, setFAs] = useState("All");
+  const channels = ["All", ...new Set(D.tracker.map(r => r[1]))];
+  const assignees = ["All", ...new Set(D.tracker.map(r => r[5]))];
+  const filtered = rows.filter(r =>
+    (fCh === "All" || r.channel === fCh) && (fSt === "All" || r.status === fSt) && (fAs === "All" || r.assignee === fAs));
+  const done = rows.filter(r => r.status === "Approved" || r.status === "Live").length;
+  const pct = Math.round((done / rows.length) * 100);
+  const setStatus = (id, s) => { setRows(rs => rs.map(r => r.id === id ? { ...r, status: s } : r)); store.saveTracker(rows.map(r => r.id === id ? { ...r, status: s } : r)); };
+
+  return (
+    <Page max={1500}>
+      <PageHead title="Content Tracker" sub="Ad-copy production status across every channel & campaign"
+        actions={<button className="btn btn-primary"><Icon name="plus" size={15} /> Add Task</button>} />
+      <div className="card" style={{ padding: "14px 18px", marginBottom: 18, display: "flex", gap: 22, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 200px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>{done} of {rows.length} ad units complete</span>
+            <span style={{ fontFamily: "var(--mono)", fontWeight: 600, color: "var(--gold)" }}>{pct}%</span>
+          </div>
+          <div style={{ height: 8, background: "#eef0f3", borderRadius: 5, overflow: "hidden" }}>
+            <div style={{ width: pct + "%", height: "100%", background: "linear-gradient(90deg,var(--gold),#b8973f)", borderRadius: 5, transition: "width .4s" }}></div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <Icon name="filter" size={15} style={{ color: "var(--ink-faint)" }} />
+          <select className="select" style={{ width: "auto", fontSize: 12.5 }} value={fCh} onChange={e => setFCh(e.target.value)}>{channels.map(c => <option key={c}>{c}</option>)}</select>
+          <select className="select" style={{ width: "auto", fontSize: 12.5 }} value={fSt} onChange={e => setFSt(e.target.value)}><option>All</option>{D.statuses.map(s => <option key={s}>{s}</option>)}</select>
+          <select className="select" style={{ width: "auto", fontSize: 12.5 }} value={fAs} onChange={e => setFAs(e.target.value)}>{assignees.map(a => <option key={a}>{a}</option>)}</select>
+        </div>
+      </div>
+
+      <div className="card" style={{ overflow: "auto" }}>
+        <table className="trk-tbl">
+          <thead><tr>
+            <th>#</th><th>Channel</th><th>Type</th><th>Campaign / Ad Unit</th><th>Assigned</th><th>Due</th><th>Status</th><th>Reviewer</th>
+          </tr></thead>
+          <tbody>
+            {filtered.map(r => (
+              <tr key={r.id}>
+                <td style={{ fontFamily: "var(--mono)", color: "var(--ink-faint)" }}>{String(r.id).padStart(2, "0")}</td>
+                <td><span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 600, fontSize: 12.5 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: (D.channelMeta[r.channel] || {}).color || "#888" }}></span>{r.channel}</span></td>
+                <td style={{ color: "var(--ink-soft)", fontSize: 12.5 }}>{r.type}</td>
+                <td><div style={{ fontWeight: 600, color: "var(--navy)", fontSize: 13 }}>{r.campaign}</div><div style={{ fontSize: 11.5, color: "var(--ink-faint)" }}>{r.unit}</div></td>
+                <td style={{ fontSize: 12.5 }}>{r.assignee}</td>
+                <td style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>{r.due}</td>
+                <td><StatusBadge status={r.status} onChange={s => setStatus(r.id, s)} size="sm" /></td>
+                <td style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>{r.reviewer}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <style>{`.trk-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+        .trk-tbl th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-faint);
+          font-weight:600;padding:10px 14px;border-bottom:1px solid var(--line-strong);white-space:nowrap;}
+        .trk-tbl td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:middle;}
+        .trk-tbl tr:last-child td{border-bottom:none;} .trk-tbl tbody tr:hover{background:#fafbfc;}`}</style>
+    </Page>
+  );
+}
+
+/* ================= COPY BANK ================= */
+function CopyBankScreen() {
+  const C = window.LAMF_DATA.copyBank;
+  const Block = ({ title, children }) => (
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ fontWeight: 700, fontSize: 13, color: "var(--navy)", marginBottom: 12, textTransform: "uppercase", letterSpacing: ".03em" }}>{title}</div>
+      {children}
+    </div>
+  );
+  return (
+    <Page>
+      <PageHead title="Copy Bank" sub="Reusable, pre-approved LAMF building blocks — USPs, CTAs, power words & guardrails" />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" }} className="cb-grid">
+        <Block title="USPs">
+          {C.usps.map((u, i) => (
+            <div key={i} style={{ padding: "8px 0", borderTop: i ? "1px solid var(--line)" : "none" }}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: "var(--navy)" }}>{u[0]}</div>
+              <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>{u[1]}</div>
+            </div>
+          ))}
+        </Block>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <Block title="Approved CTAs">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {C.ctas.map((c, i) => <span key={i} style={{ background: "var(--gold-tint)", border: "1px solid var(--gold-soft)", color: "#7a6526", borderRadius: 20, padding: "4px 11px", fontSize: 12.5, fontWeight: 500 }}>{c}</span>)}
+            </div>
+          </Block>
+          <Block title="Power Words">
+            {C.powerWords.map((p, i) => (
+              <div key={i} style={{ padding: "6px 0", borderTop: i ? "1px solid var(--line)" : "none", display: "flex", gap: 10 }}>
+                <span style={{ fontWeight: 600, fontSize: 12.5, color: "var(--navy)", minWidth: 90 }}>{p[0]}</span>
+                <span style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>{p[1]}</span>
+              </div>
+            ))}
+          </Block>
+        </div>
+      </div>
+      <div style={{ marginTop: 16 }}>
+        <Block title="⚠ Avoid / Do Not Use">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 12 }}>
+            {C.avoid.map((a, i) => (
+              <div key={i} style={{ background: "var(--red-bg)", borderRadius: 8, padding: "9px 11px" }}>
+                <div style={{ fontWeight: 600, fontSize: 12.5, color: "var(--red)" }}>{a[0]}</div>
+                <div style={{ fontSize: 12, color: "#9a4040" }}>{a[1]}</div>
+              </div>
+            ))}
+          </div>
+        </Block>
+      </div>
+      <style>{`@media(max-width:900px){.cb-grid{grid-template-columns:1fr !important;}}`}</style>
+    </Page>
+  );
+}
+
+/* ================= GUIDELINES ================= */
+function GuidelinesScreen() {
+  const D = window.LAMF_DATA;
+  const [ch, setCh] = useState("All");
+  const channels = ["All", ...new Set(D.guidelines.map(g => g[0]))];
+  const rows = D.guidelines.filter(g => ch === "All" || g[0] === ch);
+  return (
+    <Page>
+      <PageHead title="Ad Copy Guidelines" sub="Character limits, asset counts & compliance rules by channel"
+        actions={<select className="select" style={{ width: "auto" }} value={ch} onChange={e => setCh(e.target.value)}>{channels.map(c => <option key={c}>{c}</option>)}</select>} />
+      <div className="card" style={{ overflow: "auto", marginBottom: 18 }}>
+        <table className="trk-tbl">
+          <thead><tr><th>Channel</th><th>Format</th><th>Asset</th><th>Min</th><th>Max</th><th>Char / Size Limit</th><th>Notes</th></tr></thead>
+          <tbody>{rows.map((g, i) => (
+            <tr key={i}><td style={{ fontWeight: 600, color: "var(--navy)" }}>{g[0]}</td><td style={{ color: "var(--ink-soft)" }}>{g[1]}</td>
+              <td>{g[2]}</td><td style={{ fontFamily: "var(--mono)" }}>{g[3]}</td><td style={{ fontFamily: "var(--mono)" }}>{g[4]}</td>
+              <td><span className="pill pill-green" style={{ background: "#eef1f6", color: "var(--navy)" }}>{g[5]}</span></td>
+              <td style={{ fontSize: 12, color: "var(--ink-soft)", maxWidth: 320 }}>{g[6]}</td></tr>
+          ))}</tbody>
+        </table>
+      </div>
+      <div className="card" style={{ padding: 16 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: "var(--navy)", marginBottom: 12, textTransform: "uppercase", letterSpacing: ".03em" }}>LAMF Copy Rules — Compliance</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 12 }}>
+          {D.copyRules.map((r, i) => (
+            <div key={i} style={{ display: "flex", gap: 11, padding: "4px 0" }}>
+              <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--gold)", background: "var(--gold-tint)", borderRadius: 5, padding: "3px 7px", height: "fit-content", whiteSpace: "nowrap" }}>{r[0]}</span>
+              <div><div style={{ fontWeight: 600, fontSize: 12.5, color: "var(--navy)" }}>{r[1]}</div><div style={{ fontSize: 12, color: "var(--ink-soft)" }}>{r[2]}</div></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Page>
+  );
+}
+
+/* ================= GENERIC STUB ================= */
+function StubScreen({ title, sub, icon, bullets }) {
+  return (
+    <Page max={760}>
+      <div className="card" style={{ padding: "48px 40px", textAlign: "center", marginTop: 30 }}>
+        <div style={{ width: 60, height: 60, borderRadius: 16, background: "var(--gold-tint)", color: "var(--gold)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+          <Icon name={icon} size={28} />
+        </div>
+        <div style={{ fontSize: 21, fontWeight: 700, color: "var(--navy)", letterSpacing: "-.01em" }}>{title}</div>
+        <div style={{ fontSize: 14, color: "var(--ink-faint)", marginTop: 6, maxWidth: 420, marginInline: "auto" }}>{sub}</div>
+        {bullets && (
+          <div style={{ display: "inline-flex", flexDirection: "column", gap: 9, marginTop: 22, textAlign: "left" }}>
+            {bullets.map((b, i) => (
+              <div key={i} style={{ display: "flex", gap: 9, alignItems: "center", fontSize: 13, color: "var(--ink-soft)" }}>
+                <span style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--gold-tint)", color: "var(--gold)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="check" size={11} /></span>{b}
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ marginTop: 26, fontSize: 12, color: "var(--ink-faint)", fontFamily: "var(--mono)" }}>Screen scaffolded · ready to build out next</div>
+      </div>
+    </Page>
+  );
+}
+
+Object.assign(window, { ComplianceScreen, TrackerScreen, CopyBankScreen, GuidelinesScreen, StubScreen });
+</script>
+<script type="text/babel">
+/* App store (state + localStorage), topbar, routing, mount. */
+const { useState: uS, useEffect: uE, useRef: uR, useCallback: uC, useMemo } = React;
+const LS_KEY = "lamf_tool_v1";
+
+function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
+
+function useStore() {
+  const D = window.LAMF_DATA;
+  const [campaigns, setCampaigns] = uS(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) || "null");
+      if (saved && saved.campaigns) return saved.campaigns;
+    } catch (e) {}
+    return deepClone(D.campaigns);
+  });
+  const [compliance, setCompliance] = uS(() => {
+    try { const s = JSON.parse(localStorage.getItem(LS_KEY) || "null"); if (s && s.compliance) return s.compliance; } catch (e) {}
+    return {};
+  });
+  const [tracker, setTracker] = uS(() => {
+    try { const s = JSON.parse(localStorage.getItem(LS_KEY) || "null"); if (s && s.tracker) return s.tracker; } catch (e) {}
+    return null;
+  });
+  const [activeCampaign, setActiveCampaign] = uS(campaigns[0].id);
+  const bingFromRef = uR(null);
+
+  // persist
+  uE(() => {
+    const t = setTimeout(() => {
+      localStorage.setItem(LS_KEY, JSON.stringify({ campaigns, compliance, tracker }));
+    }, 200);
+    return () => clearTimeout(t);
+  }, [campaigns, compliance, tracker]);
+
+  const getCampaign = uC(id => campaigns.find(c => c.id === id) || campaigns[0], [campaigns]);
+  const editCampaign = uC((id, fn) => {
+    setCampaigns(cs => cs.map(c => {
+      if (c.id !== id) return c;
+      const copy = deepClone(c); fn(copy); return copy;
+    }));
+  }, []);
+  const copyToBing = uC(id => { bingFromRef.current = id; }, []);
+
+  const trackerRows = uC(() => {
+    if (tracker) return tracker;
+    return D.tracker.map(r => ({ id: r[0], channel: r[1], type: r[2], campaign: r[3], unit: r[4], assignee: r[5], due: r[6], status: r[7], reviewer: r[8] }));
+  }, [tracker]);
+  const saveTracker = uC(rows => setTracker(rows), []);
+
+  const setComplianceVal = uC((campId, rowKey, v) => {
+    setCompliance(c => ({ ...c, [campId]: { ...(c[campId] || {}), [rowKey]: v } }));
+  }, []);
+
+  const resetAll = uC(() => {
+    localStorage.removeItem(LS_KEY);
+    setCampaigns(deepClone(D.campaigns)); setCompliance({}); setTracker(null);
+  }, []);
+
+  return {
+    campaigns, getCampaign, editCampaign, copyToBing, bingFrom: bingFromRef.current,
+    compliance, setCompliance: setComplianceVal,
+    trackerRows, saveTracker, resetAll,
+    useCampaign: () => [activeCampaign, setActiveCampaign],
+  };
+}
+
+const SCREEN_META = {
+  dashboard: { crumb: "Overview", title: "Dashboard" },
+  google: { crumb: "Channels · Google", title: "Google Search Ad Writer" },
+  extensions: { crumb: "Channels · Google", title: "Ad Extensions" },
+  display: { crumb: "Channels · Google", title: "Display · Performance Max" },
+  demandgen: { crumb: "Channels · Google", title: "Demand Gen" },
+  meta: { crumb: "Channels · Meta", title: "Facebook + Instagram" },
+  bing: { crumb: "Channels · Microsoft", title: "Bing Ad Writer" },
+  compliance: { crumb: "Review", title: "Compliance Review" },
+  tracker: { crumb: "Review", title: "Content Tracker" },
+  copybank: { crumb: "Resources", title: "Copy Bank" },
+  guidelines: { crumb: "Resources", title: "Guidelines" },
+  settings: { crumb: "Account", title: "Settings" },
+};
+
+function Topbar({ screen, store }) {
+  const D = window.LAMF_DATA;
+  const meta = SCREEN_META[screen] || { crumb: "", title: "" };
+  return (
+    <div className="topbar">
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="crumb">Shriram Credit · LAMF{meta.crumb ? " · " + meta.crumb : ""}</div>
+        <h1>{meta.title}</h1>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, background: "var(--gold-tint)", border: "1px solid var(--gold-soft)",
+          borderRadius: 20, padding: "5px 12px", fontSize: 12.5, fontWeight: 600, color: "#7a6526" }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--gold)" }}></span>
+          LAMF @ 10.5%* p.a.
+        </div>
+        <button className="btn btn-ghost btn-sm" title="Notifications" style={{ padding: 8 }}><Icon name="bell" size={17} /></button>
+        <div style={{ width: 1, height: 24, background: "var(--line)" }}></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--navy)", color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>PN</div>
+          <div style={{ lineHeight: 1.2 }} className="user-meta">
+            <div style={{ fontWeight: 600, fontSize: 13 }}>Priya Nair</div>
+            <div style={{ fontSize: 11, color: "var(--ink-faint)" }}>Content Lead</div>
+          </div>
+        </div>
+      </div>
+      <style>{`@media(max-width:600px){.user-meta{display:none;}}`}</style>
+    </div>
+  );
+}
+
+function App() {
+  const store = useStore();
+  const [screen, setScreen] = uS(() => (location.hash || "").replace("#", "") || "google");
+  const [, setCampaign] = store.useCampaign();
+
+  uE(() => { location.hash = screen; }, [screen]);
+  uE(() => {
+    const onHash = () => { const s = (location.hash || "").replace("#", ""); if (s && SCREEN_META[s]) setScreen(s); };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  const nav = (id, campId) => {
+    if (campId) setCampaign(campId);
+    setScreen(id);
+    document.querySelector(".content-scroll")?.scrollTo(0, 0);
+  };
+
+  const counts = {
+    google: store.campaigns.length,
+    compliance: store.campaigns.filter(c => c.status !== "Approved" && c.status !== "Live").length,
+    tracker: store.trackerRows().length,
+  };
+
+  let view;
+  switch (screen) {
+    case "dashboard": view = <DashboardScreen store={store} onNav={nav} />; break;
+    case "google": view = <GoogleSearchScreen store={store} />; break;
+    case "extensions": view = <ExtensionsScreen store={store} />; break;
+    case "meta": view = <MetaScreen store={store} />; break;
+    case "bing": view = <BingScreen store={store} />; break;
+    case "compliance": view = <ComplianceScreen store={store} />; break;
+    case "tracker": view = <TrackerScreen store={store} />; break;
+    case "copybank": view = <CopyBankScreen />; break;
+    case "guidelines": view = <GuidelinesScreen />; break;
+    case "display": view = <StubScreen title="Display · Performance Max" icon="display"
+      sub="Responsive Display + PMax asset groups — short headlines, long headlines, descriptions & image assets."
+      bullets={["10 short headlines (≤30) + 5 long headlines (≤90)", "5 descriptions (≤90)", "Landscape, square & portrait image assets", "Auto-combination preview across placements"]} />; break;
+    case "demandgen": view = <StubScreen title="Demand Gen" icon="spark"
+      sub="Visually-rich Demand Gen campaigns across Discover, Gmail & YouTube feeds."
+      bullets={["5 headlines (≤40) + 5 descriptions per variation", "Single image, carousel & video formats", "Discover / Gmail / YouTube preview tabs"]} />; break;
+    case "settings": view = <StubScreen title="Settings" icon="settings"
+      sub="Workspace, team, brand defaults & data."
+      bullets={["Team members & role permissions", "Brand voice & compliance defaults", "Default rate, regulator & disclaimer text", "Export & integration settings"]} />; break;
+    default: view = <DashboardScreen store={store} onNav={nav} />;
+  }
+
+  // settings reset button hook (small extra)
+  return (
+    <div className="app">
+      <Sidebar active={screen} onNav={nav} counts={counts} />
+      <div className="main">
+        <Topbar screen={screen} store={store} />
+        <div className="content-scroll">{view}</div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <ToastProvider><App /></ToastProvider>
+);
+</script>
+</body></html>
