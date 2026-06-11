@@ -4478,6 +4478,7 @@ function useStore() {
   const [activeCompany, setActiveCompanyRaw] = uS(() => init.activeCompany || "all");
   const [userId, setUserId] = uS(() => init.userId || "priya");
   const [activeCampaign, setActiveCampaign] = uS(() => init.activeCampaign || campaigns[0].id);
+  const [authed, setAuthed] = uS(() => !!init.authed);
   const bingFromRef = uR(null);
 
   uE(() => {
@@ -4507,7 +4508,6 @@ function useStore() {
   const resetAll = uC(() => { localStorage.removeItem(LS_KEY);
     setCampaigns(deepClone(D.campaigns)); setCompliance({}); setTracker(null); setActiveCompanyRaw("all"); }, []);
 
-  const [authed, setAuthed] = uS(() => !!init.authed);
   const signIn = uC((id) => { setUserId(id); setAuthed(true); }, []);
   const signOut = uC(() => { setAuthed(false); }, []);
 
@@ -4734,6 +4734,7 @@ function LoginScreen({ store }) {
   const [pw, setPw] = uS("");
   const [remember, setRemember] = uS(true);
   const [err, setErr] = uS("");
+  const [googleTip, setGoogleTip] = uS(false);
   const matchUser = (em) => D.team.find(t => em && (t.name.toLowerCase().replace(/[^a-z]/g, "") + "@shriram.com" === em.toLowerCase() || em.toLowerCase().startsWith(t.name.split(" ")[0].toLowerCase())));
   const submit = (e) => {
     e && e.preventDefault();
@@ -4767,10 +4768,19 @@ function LoginScreen({ store }) {
           <div style={{ fontSize: 20, fontWeight: 700, color: "var(--navy)" }}>Sign in</div>
           <div style={{ fontSize: 13, color: "var(--ink-faint)", marginBottom: 22, marginTop: 2 }}>Use your Shriram work account to continue.</div>
 
-          <button type="button" onClick={() => store.signIn(store.userId)} className="btn" style={{ width: "100%", justifyContent: "center", marginBottom: 14, padding: "10px 13px" }}>
-            <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M45 24c0-1.6-.1-3.1-.4-4.5H24v9h11.8c-.5 2.7-2 5-4.4 6.6v5.5h7.1C42.7 36.6 45 30.8 45 24z"/><path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.4l-7.1-5.5c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.6-3.9-12.4-9.1H4.3v5.7C7.9 41.1 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.6 28.1c-.5-1.3-.7-2.7-.7-4.1s.3-2.8.7-4.1v-5.7H4.3C2.8 17.1 2 20.4 2 24s.8 6.9 2.3 9.8l7.3-5.7z"/><path fill="#EA4335" d="M24 10.8c3.3 0 6.2 1.1 8.5 3.3l6.3-6.3C35 4.1 30 2 24 2 15.4 2 7.9 6.9 4.3 14.2l7.3 5.7C13.4 14.7 18.2 10.8 24 10.8z"/></svg>
-            Sign in with Google Workspace
-          </button>
+          <div style={{ position: "relative", marginBottom: 14 }}>
+            <button type="button" onClick={() => setGoogleTip(true)} className="btn" style={{ width: "100%", justifyContent: "center", padding: "10px 13px", opacity: 0.7, cursor: "not-allowed" }}>
+              <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M45 24c0-1.6-.1-3.1-.4-4.5H24v9h11.8c-.5 2.7-2 5-4.4 6.6v5.5h7.1C42.7 36.6 45 30.8 45 24z"/><path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.4l-7.1-5.5c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.6-3.9-12.4-9.1H4.3v5.7C7.9 41.1 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.6 28.1c-.5-1.3-.7-2.7-.7-4.1s.3-2.8.7-4.1v-5.7H4.3C2.8 17.1 2 20.4 2 24s.8 6.9 2.3 9.8l7.3-5.7z"/><path fill="#EA4335" d="M24 10.8c3.3 0 6.2 1.1 8.5 3.3l6.3-6.3C35 4.1 30 2 24 2 15.4 2 7.9 6.9 4.3 14.2l7.3 5.7C13.4 14.7 18.2 10.8 24 10.8z"/></svg>
+              Sign in with Google Workspace
+            </button>
+            {googleTip && (
+              <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, right: 0, background: "var(--navy)", color: "#fff", borderRadius: 8, padding: "10px 14px", fontSize: 12.5, zIndex: 10, display: "flex", alignItems: "center", gap: 8, boxShadow: "var(--shadow-lg)" }}>
+                <span style={{ fontSize: 16 }}>🔒</span>
+                <span><b style={{ color: "var(--gold)" }}>Coming soon</b> — Firebase / Google Workspace SSO integration is pending. Use email sign-in or a demo account below.</span>
+                <button type="button" onClick={() => setGoogleTip(false)} style={{ marginLeft: "auto", background: "none", border: "none", color: "#aab4c4", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+              </div>
+            )}
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 0", color: "var(--ink-faint)", fontSize: 12 }}>
             <div style={{ flex: 1, height: 1, background: "var(--line)" }}></div>or<div style={{ flex: 1, height: 1, background: "var(--line)" }}></div>
           </div>
