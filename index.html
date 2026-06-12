@@ -1327,6 +1327,105 @@ Object.assign(window, { Icon, ICONS, CharPill, charClass, StatusBadge, STATUS_CL
    Shared across Google Ads & Bing. Uses window.claude.complete with a
    keyword/copy-bank fallback so it still works in exported standalone builds. */
 
+/* ---------- product taxonomy: allowed/forbidden topics per business unit ---------- */
+const PRODUCT_TAXONOMY = {
+  sccl_lamf: {
+    label: "Loan Against Mutual Funds (LAMF)",
+    company: "sccl",
+    allowed: ["loan against mutual funds", "LAMF", "lien on MF", "pledge MF units", "liquidity against investments", "overdraft", "credit line", "stay invested get funds"],
+    forbidden: ["insurance", "life cover", "health plan", "premium", "claim", "coverage", "broking", "equity trading", "demat", "IPO", "stock market", "gold loan", "personal loan", "unsecured loan"],
+    required: ["SCCL", "Shriram Credit"],
+    compliance: "RBI Regulated NBFC — include rate with asterisk (*p.a.), no guaranteed returns, no superlatives (best/lowest/cheapest), no competitor names",
+  },
+  sccl_personal_loan: {
+    label: "Personal Loan",
+    company: "sccl",
+    allowed: ["personal loan", "instant loan", "quick cash", "unsecured loan", "emergency funds", "no collateral loan", "digital loan"],
+    forbidden: ["insurance", "mutual funds", "LAMF", "lien", "broking", "equity", "gold loan", "NAV", "premium", "life cover"],
+    required: ["SCCL", "Shriram Credit"],
+    compliance: "RBI Regulated NBFC — no guaranteed approval claims, no superlatives",
+  },
+  sccl_gold_loan: {
+    label: "Gold Loan",
+    company: "sccl",
+    allowed: ["gold loan", "pledge gold", "gold jewellery", "gold as collateral", "instant cash against gold", "gold ornaments"],
+    forbidden: ["insurance", "mutual funds", "LAMF", "equity", "broking", "personal loan", "premium", "coverage"],
+    required: ["SCCL", "Shriram Credit"],
+    compliance: "RBI Regulated NBFC — no guaranteed valuations, no superlatives",
+  },
+  fortune_life: {
+    label: "Life Insurance",
+    company: "fortune",
+    allowed: ["life insurance", "term plan", "term insurance", "sum assured", "death benefit", "family protection", "coverage", "life cover", "policy term", "nominee"],
+    forbidden: ["loan", "mutual funds", "LAMF", "interest rate", "lien", "overdraft", "broking", "equity trading", "NBFC", "gold loan", "health plan", "hospitalization", "cashless"],
+    required: ["Shriram Fortune", "life insurance"],
+    compliance: "IRDAI Registered — state sum assured clearly, no guaranteed bonus claims, no misleading benefit comparisons",
+  },
+  fortune_health: {
+    label: "Health Insurance",
+    company: "fortune",
+    allowed: ["health insurance", "medical insurance", "hospitalization", "cashless treatment", "health cover", "premium", "network hospitals", "mediclaim", "critical illness"],
+    forbidden: ["loan", "mutual funds", "LAMF", "interest rate", "broking", "equity trading", "life insurance", "term plan", "death benefit", "NBFC"],
+    required: ["Shriram Fortune", "health insurance"],
+    compliance: "IRDAI Registered — no guaranteed premium lock, cashless only if network verified",
+  },
+  sfs_broking: {
+    label: "Stock Broking & Trading",
+    company: "sfs",
+    allowed: ["stock broking", "equity trading", "demat account", "IPO", "share market", "NSE", "BSE", "invest in stocks", "online trading"],
+    forbidden: ["insurance", "loan", "LAMF", "pledge MF", "gold loan", "NBFC", "premium", "health plan", "life cover"],
+    required: ["Shriram Financial Services"],
+    compliance: "SEBI Registered Broker — include investments-subject-to-market-risk disclaimer, no guaranteed returns",
+  },
+  insights_research: {
+    label: "Research & Market Advisory",
+    company: "insights",
+    allowed: ["stock research", "market analysis", "investment research", "portfolio review", "analyst report", "sector outlook", "stock advisory"],
+    forbidden: ["insurance", "loan", "LAMF", "gold loan", "guaranteed profit", "guaranteed returns", "fixed returns", "assured gains"],
+    required: ["Shriram Insights"],
+    compliance: "SEBI Research Analyst — include risk disclaimer, no guaranteed profit claims",
+  },
+  wealth_mgmt: {
+    label: "Wealth Management",
+    company: "wealth",
+    allowed: ["wealth management", "portfolio management", "financial planning", "asset allocation", "investment advisory", "estate planning", "HNI wealth"],
+    forbidden: ["insurance selling", "loan product", "LAMF", "day trading tips", "guaranteed returns", "fixed returns", "gold loan"],
+    required: ["Shriram Wealth"],
+    compliance: "SEBI Registered — no guaranteed returns, no misleading past performance claims",
+  },
+};
+
+function getProductTaxonomy(co, camp) {
+  const text = ((camp?.theme || "") + " " + (camp?.name || "")).toLowerCase();
+  const id = co?.id;
+  if (id === "sccl") {
+    if (text.includes("gold")) return PRODUCT_TAXONOMY.sccl_gold_loan;
+    if (text.includes("personal")) return PRODUCT_TAXONOMY.sccl_personal_loan;
+    return PRODUCT_TAXONOMY.sccl_lamf;
+  }
+  if (id === "fortune") {
+    if (text.includes("health") || text.includes("medical")) return PRODUCT_TAXONOMY.fortune_health;
+    return PRODUCT_TAXONOMY.fortune_life;
+  }
+  if (id === "sfs") return PRODUCT_TAXONOMY.sfs_broking;
+  if (id === "insights") return PRODUCT_TAXONOMY.insights_research;
+  if (id === "wealth") return PRODUCT_TAXONOMY.wealth_mgmt;
+  return null;
+}
+
+function detectBriefConflict(brief, taxonomy) {
+  if (!taxonomy || !brief) return null;
+  const text = brief.toLowerCase();
+  const forbidden = taxonomy.forbidden.filter(f => text.includes(f.toLowerCase()));
+  if (forbidden.length) return { type: "forbidden_terms", terms: forbidden, product: taxonomy.label };
+  for (const [, other] of Object.entries(PRODUCT_TAXONOMY)) {
+    if (other === taxonomy) continue;
+    const crossed = other.allowed.filter(a => a.length > 6 && text.includes(a.toLowerCase()));
+    if (crossed.length) return { type: "wrong_product", terms: crossed, product: taxonomy.label, otherProduct: other.label };
+  }
+  return null;
+}
+
 /* ---------- count parsing from a free-text brief ---------- */
 function parseBriefCounts(brief) {
   const t = (brief || "").toLowerCase();
@@ -1475,10 +1574,15 @@ async function aiGenerate(brief, ctx, onStage, onInspect) {
   const rateClause = ctx.rate ? `Rate: ${ctx.rate}.` : "";
   const brandLine = `Product: ${ctx.name} (${ctx.short}). Channel: ${ctx.channel || "Google Search RSA"}. ${rateClause} Regulator: ${ctx.regulator || ""}. Keywords: ${(ctx.keywords || []).join(", ") || "—"}. Theme: ${ctx.theme || ctx.name}.`;
 
+  const taxonomy = ctx.taxonomy || null;
+  const guardrailsBlock = taxonomy
+    ? `PRODUCT GUARDRAILS — ${taxonomy.label}:\n- Write ONLY about: ${taxonomy.allowed.join(", ")}\n- NEVER mention (strictly forbidden): ${taxonomy.forbidden.join(", ")}\n- Compliance: ${taxonomy.compliance}`
+    : "";
+
   const stage1Prompt = `You are an expert performance marketing strategist for Indian financial services.
 ${brandLine}
 Brief: "${brief}"
-
+${guardrailsBlock ? "\n" + guardrailsBlock + "\n" : ""}
 Think deeply: What emotional hooks resonate with this audience? What unique angles make this product stand out? What compliance guardrails apply (${ctx.regulator || "regulated financial services"} framing, no competitor names, no superlatives like best/lowest)?
 Return a tight JSON strategy: {"hooks":["hook1","hook2","hook3"],"tone":"...","avoid":"..."}
 Respond with JSON only.`;
@@ -1494,8 +1598,12 @@ Respond with JSON only.`;
       regulator: ctx.regulator || "(none)",
       keywords: ctx.keywords,
       theme: ctx.theme,
+      taxonomy: taxonomy ? taxonomy.label : "(none)",
+      guardrails_allowed: taxonomy ? taxonomy.allowed.join(", ") : "(none)",
+      guardrails_forbidden: taxonomy ? taxonomy.forbidden.join(", ") : "(none)",
     },
     brandLine,
+    guardrailsBlock,
     stage1Prompt,
     stage2Prompt: null,
   };
@@ -1518,7 +1626,7 @@ Respond with JSON only.`;
 Strategy: ${stratSummary}
 ${brandLine}
 Brand rules: always write "${ctx.short}" correctly; ${ctx.rate ? `always include rate "${ctx.rate}" with the asterisk;` : "do NOT mention any loan rates or interest rates — this product has none;"} regulatory framing: "${ctx.regulator || ""}"; never name competitors; no superlatives (best/lowest/cheapest); tone = trustworthy, benefit-led, human.
-
+${guardrailsBlock ? "\n" + guardrailsBlock + "\n" : ""}
 Write ${hl} responsive-search HEADLINES (each MUST be ≤30 characters) and ${d} DESCRIPTIONS (each MUST be ≤90 characters).
 Every line must be distinct. No numbering. No prose.
 Return ONLY valid JSON: {"headlines":["..."],"descriptions":["..."]}`;
@@ -1574,16 +1682,27 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
   const [used, setUsed] = useState({});
   const [inspector, setInspector] = useState(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [conflict, setConflict] = useState(null);
   const hasKey = !!getAiKey();
 
-  const quick = [
+  const tx = ctx.taxonomy;
+  const quick = tx ? [
+    `Write 5 headlines and 2 descriptions for ${tx.label} customers with a warm personal touch`,
+    `Rewrite to feel more urgent — focus on the key benefit of ${tx.label}`,
+    ctx.rate ? `Give 3 headlines that lead with the ${ctx.rate} rate` : `Give 3 headlines highlighting why someone should choose ${tx.label}`,
+  ] : [
     "Write 5 headlines and 2 descriptions for loan customers, with a warm personal touch",
     "Rewrite the headlines to feel more urgent for an emergency-cash audience",
     ctx.rate ? "Give 3 headlines that lead with the " + ctx.rate + " rate" : "Give 3 headlines that highlight the key benefit of " + (ctx.theme || ctx.name),
   ];
 
-  const run = async () => {
+  const run = async (forceOverride = false) => {
     if (!brief.trim()) { toast("Tell the AI what to write first", "warn"); return; }
+    if (!forceOverride && tx) {
+      const c = detectBriefConflict(brief, tx);
+      if (c) { setConflict(c); return; }
+    }
+    setConflict(null);
     setBusy(true); setRes(null); setUsed({}); setStage(null); setInspector(null);
     try {
       const r = await aiGenerate(brief, ctx, (num, label) => setStage({ num, label }), (payload) => setInspector(payload));
@@ -1616,6 +1735,14 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
       </div>
       {open && (
         <div style={{ padding: "0 14px 14px" }}>
+          {/* Product taxonomy context */}
+          {tx && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-faint)" }}>Product context</span>
+              <span style={{ fontSize: 11, color: "#1a5c2a", background: "#e6f4ea", border: "1px solid #b0d8b0", borderRadius: 20, padding: "2px 9px", fontWeight: 600 }}>{tx.label}</span>
+              <span style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>· guardrails active</span>
+            </div>
+          )}
           {ctx.keywords && ctx.keywords.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 9 }}>
               <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-faint)" }}>Keywords in context</span>
@@ -1624,15 +1751,35 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
               ))}
             </div>
           )}
-          <textarea className="input" rows={3} value={brief} onChange={e => setBrief(e.target.value)}
-            placeholder={'e.g. "Write 5 headlines and 2 descriptions for the product targeting personal-loan customers, with a personal touch"'}
+          <textarea className="input" rows={3} value={brief} onChange={e => { setBrief(e.target.value); if (conflict) setConflict(null); }}
+            placeholder={tx ? `e.g. "Write 5 headlines and 2 descriptions for ${tx.label} customers targeting new investors"` : 'e.g. "Write 5 headlines and 2 descriptions for the product targeting personal-loan customers, with a personal touch"'}
             style={{ resize: "vertical", fontSize: 13, lineHeight: 1.5 }} />
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
             {quick.map((q, i) => (
               <button key={i} className="btn btn-sm btn-ghost" style={{ fontSize: 11.5, color: "#5b3e86", background: "#f3eefb", whiteSpace: "normal", textAlign: "left", lineHeight: 1.3 }}
-                onClick={() => setBrief(q)}>{q.length > 46 ? q.slice(0, 44) + "…" : q}</button>
+                onClick={() => { setBrief(q); setConflict(null); }}>{q.length > 56 ? q.slice(0, 54) + "…" : q}</button>
             ))}
           </div>
+          {/* Conflict warning */}
+          {conflict && (
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 9, background: "#fffbea", border: "1px solid #f0c040", borderRadius: 8, padding: "10px 12px", marginTop: 10 }}>
+              <Icon name="spark" size={15} style={{ color: "#c48000", flexShrink: 0, marginTop: 2 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 12.5, color: "#7a5c00", marginBottom: 3 }}>Brief may reference a different business unit</div>
+                <div style={{ fontSize: 12, color: "#7a5c00", lineHeight: 1.5, marginBottom: 8 }}>
+                  Selected campaign: <strong>{conflict.product}</strong><br />
+                  {conflict.type === "forbidden_terms"
+                    ? <>Brief contains restricted terms: <strong>{conflict.terms.join(", ")}</strong></>
+                    : <>Brief references <strong>{conflict.otherProduct}</strong> — a different product line</>
+                  }
+                </div>
+                <div style={{ display: "flex", gap: 7 }}>
+                  <button className="btn btn-sm" onClick={() => run(true)} style={{ background: "#f0c040", color: "#5a3a00", border: "none", fontWeight: 700 }}>Generate anyway</button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => setConflict(null)}>Edit brief</button>
+                </div>
+              </div>
+            </div>
+          )}
           {!hasKey && (
             <div style={{ display: "flex", alignItems: "center", gap: 9, background: "#fffbea", border: "1px solid #f0d060", borderRadius: 8, padding: "8px 11px", marginTop: 10, fontSize: 12.5, color: "#7a6000" }}>
               <Icon name="spark" size={14} style={{ color: "#c4a000", flexShrink: 0 }} />
@@ -1794,7 +1941,7 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
                     {/* PROMPT INSPECTOR */}
                     {inspector?.stage1Prompt && (
                       <details style={{ cursor: "pointer" }}>
-                        <summary style={{ fontWeight: 600, color: "#5b3e86", fontSize: 11, userSelect: "none" }}>Prompt Inspector (context + both stage prompts)</summary>
+                        <summary style={{ fontWeight: 600, color: "#5b3e86", fontSize: 11, userSelect: "none" }}>Prompt Inspector (context + guardrails + both stage prompts)</summary>
                         <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
                           <div>
                             <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Context variables</div>
@@ -1804,16 +1951,22 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
                               ))}
                             </div>
                           </div>
+                          {inspector.guardrailsBlock && (
+                            <div>
+                              <div style={{ fontWeight: 600, color: "#1a5c2a", marginBottom: 3 }}>Product guardrails (injected into both prompts)</div>
+                              <pre style={{ ...preStyle, border: "1px solid #b0d8b0", background: "#f0fbf4" }}>{inspector.guardrailsBlock}</pre>
+                            </div>
+                          )}
                           <div>
-                            <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 1 prompt</div>
+                            <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 1 prompt (strategy)</div>
                             <pre style={preStyle}>{inspector.stage1Prompt}</pre>
                           </div>
                           {inspector.stratSummary && <div>
-                            <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 1 output (strategy)</div>
+                            <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 1 output (strategy summary)</div>
                             <pre style={preStyle}>{inspector.stratSummary}</pre>
                           </div>}
                           {inspector.stage2Prompt && <div>
-                            <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 2 prompt</div>
+                            <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 2 prompt (copywriting)</div>
                             <pre style={preStyle}>{inspector.stage2Prompt}</pre>
                           </div>}
                         </div>
@@ -2424,7 +2577,7 @@ function GoogleSearchScreen({ store }) {
   const previewAd = getAd(activeAd) || camp;
   const co = D.companyById(camp.company);
   const adCount = 1 + (camp.variations ? camp.variations.length : 0);
-  const ctx = { name: co.name, short: co.short, theme: camp.theme, keywords: camp.keywords || [], rate: co.id === "sccl" ? D.brand.rate : null, regulator: co.regulator || "", channel: "Google " + (camp.type || "Search") + " RSA" };
+  const ctx = { name: co.name, short: co.short, theme: camp.theme, keywords: camp.keywords || [], rate: co.id === "sccl" ? D.brand.rate : null, regulator: co.regulator || "", channel: "Google " + (camp.type || "Search") + " RSA", taxonomy: getProductTaxonomy(co, camp) };
   const addToList = (list, t, max) => { const e = list.findIndex(x => !x.text.trim()); if (e >= 0) list[e].text = t; else if (list.length < max) list.push({ text: t, pin: null }); };
   const aiAddHeadline = (t) => editAd(activeAd, a => addToList(a.headlines, t, 15));
   const aiAddDescription = (t) => editAd(activeAd, a => addToList(a.descriptions, t, 4));
@@ -3167,7 +3320,7 @@ function BingScreen({ store }) {
   const getAd = (adKey) => adKey === "main" ? camp : (camp.bingVar || [])[adKey];
   const previewAd = getAd(activeAd) || camp;
   const co = D.companyById(camp.company);
-  const ctx = { name: co.name, short: co.short, theme: camp.theme, keywords: camp.keywords || [], rate: co.id === "sccl" ? D.brand.rate : null, regulator: co.regulator || "", channel: "Microsoft Bing RSA" };
+  const ctx = { name: co.name, short: co.short, theme: camp.theme, keywords: camp.keywords || [], rate: co.id === "sccl" ? D.brand.rate : null, regulator: co.regulator || "", channel: "Microsoft Bing RSA", taxonomy: getProductTaxonomy(co, camp) };
   const addToList = (list, t, max) => { const e = list.findIndex(x => !x.text.trim()); if (e >= 0) list[e].text = t; else if (list.length < max) list.push({ text: t, pin: null }); };
   const aiAddHeadline = (t) => editAd(activeAd, a => addToList(a.headlines, t, 15));
   const aiAddDescription = (t) => editAd(activeAd, a => addToList(a.descriptions, t, 4));
