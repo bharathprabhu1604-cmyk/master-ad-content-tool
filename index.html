@@ -3896,32 +3896,35 @@ function AISettingsCard() {
 }
 
 function AuthDebugPanel({ store }) {
-  const lsKey = "sccl_tool_v3";
-  const lsRaw = (() => { try { return JSON.parse(localStorage.getItem(lsKey) || "null"); } catch { return null; } })();
+  const authRaw = (() => { try { return JSON.parse(localStorage.getItem("sccl_auth") || "null"); } catch { return null; } })();
   const wsInit = localStorage.getItem("sccl_workspace_init");
   const aiKey = localStorage.getItem("lamf_ai_key");
+  const fmt = ts => ts ? new Date(ts).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—";
+  const sessionAge = authRaw && authRaw.loginTime ? (() => {
+    const ms = Date.now() - authRaw.loginTime;
+    const d = Math.floor(ms / 86400000), h = Math.floor((ms % 86400000) / 3600000), m = Math.floor((ms % 3600000) / 60000);
+    return d > 0 ? `${d}d ${h}h ${m}m` : h > 0 ? `${h}h ${m}m` : `${m}m`;
+  })() : "—";
+  const daysLeft = authRaw && authRaw.expiresAt ? Math.max(0, Math.floor((authRaw.expiresAt - Date.now()) / 86400000)) : null;
   const rows = [
     ["Logged in", store.authed ? "YES" : "NO", store.authed ? "var(--green)" : "var(--red)"],
-    ["Auth source", "In-memory React state only (useState)", "var(--ink)"],
-    ["Persisted to localStorage", "NO — authed is never saved", "var(--red)"],
-    ["Persisted to sessionStorage", "NO — never used", "var(--ink-faint)"],
-    ["Session expiry", "None — in-memory lasts until page reload", "var(--ink-faint)"],
-    ["Session timeout", "None", "var(--ink-faint)"],
-    ["Survives page refresh (F5)", "NO — uS(false) on every mount", "var(--red)"],
-    ["Survives tab close + reopen", "NO", "var(--red)"],
-    ["Survives SPA navigation (hash change)", "YES — in-memory state stays alive", "var(--green)"],
-    ["localStorage key", lsKey, "var(--ink)"],
-    ["localStorage has auth field", lsRaw && "authed" in lsRaw ? "YES (stale from old build)" : "NO", lsRaw && "authed" in lsRaw ? "var(--red)" : "var(--green)"],
+    ["Auth storage source", authRaw ? "localStorage (sccl_auth)" : "Not found in localStorage", authRaw ? "var(--green)" : "var(--red)"],
+    ["Survives page refresh / close", authRaw ? "YES — restored from localStorage" : "NO — auth not saved yet", authRaw ? "var(--green)" : "var(--red)"],
+    ["Login time", fmt(authRaw?.loginTime), "var(--ink)"],
+    ["Last active", fmt(authRaw?.lastActive), "var(--ink)"],
+    ["Session age", sessionAge, "var(--ink)"],
+    ["Expiry time", fmt(authRaw?.expiresAt), "var(--ink)"],
+    ["Days remaining", daysLeft !== null ? `${daysLeft} of ${SESSION_DAYS} days` : "—", daysLeft !== null && daysLeft < 3 ? "var(--red)" : "var(--ink)"],
+    ["Session expired", authRaw && authRaw.expiresAt && Date.now() > authRaw.expiresAt ? "YES — will require login" : "NO", authRaw && authRaw.expiresAt && Date.now() > authRaw.expiresAt ? "var(--red)" : "var(--green)"],
+    ["Survives SPA navigation", "YES — React state in memory", "var(--green)"],
     ["sccl_workspace_init flag", wsInit ? "SET (demo data already cleared)" : "NOT SET (first login will clear demo data)", wsInit ? "var(--green)" : "var(--ink-faint)"],
-    ["AI key present", aiKey ? "YES (key saved)" : "NO — will need re-entry after login", aiKey ? "var(--green)" : "var(--ink-faint)"],
-    ["Last auth validation", store.authed ? "PASSED — currently authenticated" : "FAILED — not authenticated", store.authed ? "var(--green)" : "var(--red)"],
-    ["Root cause line", "index.html:4756 — uS(false) never reads from storage", "var(--red)"],
+    ["AI key present", aiKey ? "YES" : "NO — enter in AI Settings below", aiKey ? "var(--green)" : "var(--ink-faint)"],
   ];
   return (
-    <div className="card" style={{ padding: 18, border: "1px solid #f0c0c0", background: "#fff8f8" }}>
+    <div className="card" style={{ padding: 18, border: "1px solid #c0d8f0", background: "#f8fbff" }}>
       <div style={{ fontWeight: 700, fontSize: 13, color: "var(--navy)", marginBottom: 14, textTransform: "uppercase", letterSpacing: ".03em", display: "flex", alignItems: "center", gap: 8 }}>
         <Icon name="lock" size={15} /> Auth Debug Panel
-        <span style={{ fontSize: 10, fontWeight: 600, background: "#fde8e8", color: "var(--red)", borderRadius: 4, padding: "2px 6px", marginLeft: 4 }}>DIAGNOSTIC ONLY</span>
+        <span style={{ fontSize: 10, fontWeight: 600, background: "#e8f0fd", color: "var(--navy)", borderRadius: 4, padding: "2px 6px", marginLeft: 4 }}>DIAGNOSTIC ONLY</span>
       </div>
       <div style={{ display: "grid", gap: 0, fontSize: 12, fontFamily: "var(--mono)", border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden" }}>
         {rows.map(([label, value, color], i) => (
@@ -4784,6 +4787,34 @@ const LS_KEY = "sccl_tool_v3";
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
 function loadLS() { try { return JSON.parse(localStorage.getItem(LS_KEY) || "null") || {}; } catch (e) { return {}; } }
 
+const AUTH_KEY = "sccl_auth";
+const SESSION_DAYS = 30;
+
+function loadAuth() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
+    if (!raw || !raw.loggedIn) return false;
+    if (raw.expiresAt && Date.now() > raw.expiresAt) { localStorage.removeItem(AUTH_KEY); return false; }
+    return true;
+  } catch (e) { return false; }
+}
+function saveAuth() {
+  const now = Date.now();
+  localStorage.setItem(AUTH_KEY, JSON.stringify({
+    loggedIn: true,
+    loginTime: now,
+    lastActive: now,
+    expiresAt: now + SESSION_DAYS * 24 * 60 * 60 * 1000
+  }));
+}
+function updateLastActive() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
+    if (raw && raw.loggedIn) { raw.lastActive = Date.now(); localStorage.setItem(AUTH_KEY, JSON.stringify(raw)); }
+  } catch (e) {}
+}
+function clearAuth() { localStorage.removeItem(AUTH_KEY); }
+
 function useStore() {
   const D = window.LAMF_DATA;
   const init = loadLS();
@@ -4794,7 +4825,7 @@ function useStore() {
   const [activeCompany, setActiveCompanyRaw] = uS(() => init.activeCompany || "all");
   const [userId, setUserId] = uS(() => init.userId || "priya");
   const [activeCampaign, setActiveCampaign] = uS(() => init.activeCampaign || campaigns[0].id);
-  const [authed, setAuthed] = uS(false); // never persisted — always require login on page load
+  const [authed, setAuthed] = uS(() => loadAuth());
   const bingFromRef = uR(null);
 
   uE(() => {
@@ -4833,9 +4864,16 @@ function useStore() {
       setTracker(null);
       localStorage.setItem("sccl_workspace_init", "1");
     }
+    saveAuth();
     setAuthed(true);
   }, []);
-  const signOut = uC(() => { setAuthed(false); }, []);
+  const signOut = uC(() => { clearAuth(); setAuthed(false); }, []);
+
+  uE(() => {
+    if (!authed) return;
+    const id = setInterval(updateLastActive, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [authed]);
 
   const user = D.team.find(t => t.id === userId) || D.team[0];
   return {
