@@ -1341,25 +1341,40 @@ function fallbackGenerate(brief, ctx) {
   const C = window.LAMF_DATA.copyBank;
   const kw = (ctx.keywords || []).filter(Boolean);
   const cap = s => s.replace(/\b\w/g, m => m.toUpperCase());
-  const rate = ctx.rate || "10.5%* p.a.";
-  const ctas = C.ctas.slice();
-  const baseH = [
+  const regulator = ctx.regulator || "";
+  const baseH = ctx.rate ? [
     kw[0] ? cap(kw[0]) + "?" : `${ctx.theme || "Apply"} Today`,
-    `${ctx.short || "Shriram"} @ ${rate}`,
+    `${ctx.short || "Shriram"} @ ${ctx.rate}`,
     kw[1] ? "Smarter Than " + cap(kw[1]) : "Stay Invested. Get Funds.",
     "100% Digital Process",
-    "RBI Regulated NBFC",
+    regulator.split("·")[0].trim() || "Shriram",
     "40+ Years Of Trusted Legacy",
     kw[2] ? cap(kw[2]) : "Apply Now. Get Funds Fast.",
     "Check Eligibility In Minutes",
     "No Asset Loss. Just Liquidity.",
     "Get Cash. Stay Invested.",
+  ] : [
+    kw[0] ? cap(kw[0]) + "?" : `${ctx.theme || ctx.name} Today`,
+    kw[1] ? cap(kw[1]) : `${ctx.short || "Shriram"} — Trusted`,
+    "100% Digital Process",
+    regulator ? regulator.split("·")[0].trim() : "Regulated & Trusted",
+    "40+ Years Of Legacy",
+    kw[2] ? cap(kw[2]) : "Apply Now",
+    "Check Eligibility Today",
+    `${ctx.short || "Shriram"} — Reliable`,
+    "Expert Guidance",
+    "Get Started Today",
   ];
-  const baseD = [
-    `Skip the high-rate loan — pledge your assets & get funds at ${rate}. ${cap(kw[0] || "Apply")} now, stay invested.`,
+  const baseD = ctx.rate ? [
+    `Skip the high-rate loan — pledge your assets & get funds at ${ctx.rate}. ${cap(kw[0] || "Apply")} now, stay invested.`,
     `100% digital. Fast approval. Apply in minutes & unlock your credit line. No branch visits, no delays.`,
-    `${ctx.name || "Shriram"} — RBI Regulated NBFC with 40+ years of legacy. Check your eligibility today.`,
+    `${ctx.name || "Shriram"} — ${regulator || "Regulated"} with 40+ years of legacy. Check eligibility today.`,
     `MF units lien-marked, not sold. Your portfolio keeps growing while you access the cash you need.`,
+  ] : [
+    `${ctx.name || "Shriram"} — ${regulator || "Regulated"}. ${cap(kw[0] || ctx.theme || "Apply")} today with expert guidance.`,
+    `100% digital process. Fast approval. Apply in minutes. No branch visits, no delays.`,
+    `${cap(kw[0] || ctx.theme || ctx.name)} — trusted by thousands. ${regulator || "Regulated & reliable"}.`,
+    `${ctx.name || "Shriram"} — 40+ years of trusted financial services. Check eligibility today.`,
   ];
   return {
     headlines: baseH.slice(0, hl).map(t => t.slice(0, 30)),
@@ -1450,7 +1465,7 @@ async function callAI(prompt, maxTokens, timeoutMs = 90000) {
   }
 }
 
-async function aiGenerate(brief, ctx, onStage) {
+async function aiGenerate(brief, ctx, onStage, onInspect) {
   const key = getAiKey();
   if (!key) return { ...fallbackGenerate(brief, ctx), note: "Add your API key in Settings to enable AI generation." };
 
@@ -1458,19 +1473,36 @@ async function aiGenerate(brief, ctx, onStage) {
   const rateClause = ctx.rate ? `Rate: ${ctx.rate}.` : "";
   const brandLine = `Product: ${ctx.name} (${ctx.short}). Channel: ${ctx.channel || "Google Search RSA"}. ${rateClause} Regulator: ${ctx.regulator || ""}. Keywords: ${(ctx.keywords || []).join(", ") || "—"}. Theme: ${ctx.theme || ctx.name}.`;
 
-  try {
-    // Stage 1 — think as a performance marketer
-    if (onStage) onStage(1, "Thinking as a performance marketer…");
-    const strategyText = await callAI(
-      `You are an expert performance marketing strategist for Indian financial services.
+  const stage1Prompt = `You are an expert performance marketing strategist for Indian financial services.
 ${brandLine}
 Brief: "${brief}"
 
-Think deeply: What emotional hooks resonate with this audience? What unique angles make this product stand out? What compliance guardrails apply (RBI NBFC framing, no competitor names, no superlatives like best/lowest)?
+Think deeply: What emotional hooks resonate with this audience? What unique angles make this product stand out? What compliance guardrails apply (${ctx.regulator || "regulated financial services"} framing, no competitor names, no superlatives like best/lowest)?
 Return a tight JSON strategy: {"hooks":["hook1","hook2","hook3"],"tone":"...","avoid":"..."}
-Respond with JSON only.`,
-      350
-    );
+Respond with JSON only.`;
+
+  const inspectorPayload = {
+    provider: getAiProvider(),
+    model: getAiModel(),
+    contextVariables: {
+      company: ctx.name,
+      short: ctx.short,
+      channel: ctx.channel,
+      rate: ctx.rate || "(none — not injected)",
+      regulator: ctx.regulator || "(none)",
+      keywords: ctx.keywords,
+      theme: ctx.theme,
+    },
+    brandLine,
+    stage1Prompt,
+    stage2Prompt: null,
+  };
+  if (onInspect) onInspect({ ...inspectorPayload });
+
+  try {
+    // Stage 1 — think as a performance marketer
+    if (onStage) onStage(1, "Thinking as a performance marketer…");
+    const strategyText = await callAI(stage1Prompt, 350);
 
     let stratSummary = "";
     try {
@@ -1480,17 +1512,16 @@ Respond with JSON only.`,
 
     // Stage 2 — write the copy
     if (onStage) onStage(2, "Writing headlines & descriptions…");
-    const copyText = await callAI(
-      `You are a senior performance-marketing copywriter for ${ctx.name}, a regulated Indian financial services company.
+    const stage2Prompt = `You are a senior performance-marketing copywriter for ${ctx.name}, a regulated Indian financial services company.
 Strategy: ${stratSummary}
 ${brandLine}
 Brand rules: always write "${ctx.short}" correctly; ${ctx.rate ? `always include rate "${ctx.rate}" with the asterisk;` : "do NOT mention any loan rates or interest rates — this product has none;"} regulatory framing: "${ctx.regulator || ""}"; never name competitors; no superlatives (best/lowest/cheapest); tone = trustworthy, benefit-led, human.
 
 Write ${hl} responsive-search HEADLINES (each MUST be ≤30 characters) and ${d} DESCRIPTIONS (each MUST be ≤90 characters).
 Every line must be distinct. No numbering. No prose.
-Return ONLY valid JSON: {"headlines":["..."],"descriptions":["..."]}`,
-      700
-    );
+Return ONLY valid JSON: {"headlines":["..."],"descriptions":["..."]}`;
+    if (onInspect) onInspect({ ...inspectorPayload, stage2Prompt, stratSummary });
+    const copyText = await callAI(stage2Prompt, 700);
 
     let s = copyText.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
     const a = s.indexOf("{"), b = s.lastIndexOf("}");
@@ -1517,19 +1548,21 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
   const [stage, setStage] = useState(null); // {num:1|2, label:"..."}
   const [res, setRes] = useState(null);
   const [used, setUsed] = useState({});
+  const [inspector, setInspector] = useState(null);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
   const hasKey = !!getAiKey();
 
   const quick = [
     "Write 5 headlines and 2 descriptions for loan customers, with a warm personal touch",
     "Rewrite the headlines to feel more urgent for an emergency-cash audience",
-    "Give 3 headlines that lead with the " + (ctx.rate || "10.5%* p.a.") + " rate",
+    ctx.rate ? "Give 3 headlines that lead with the " + ctx.rate + " rate" : "Give 3 headlines that highlight the key benefit of " + (ctx.theme || ctx.name),
   ];
 
   const run = async () => {
     if (!brief.trim()) { toast("Tell the AI what to write first", "warn"); return; }
-    setBusy(true); setRes(null); setUsed({}); setStage(null);
+    setBusy(true); setRes(null); setUsed({}); setStage(null); setInspector(null);
     try {
-      const r = await aiGenerate(brief, ctx, (num, label) => setStage({ num, label }));
+      const r = await aiGenerate(brief, ctx, (num, label) => setStage({ num, label }), (payload) => setInspector(payload));
       setRes(r);
       if (r.note) toast(r.note, r.note.startsWith("AI error") ? "err" : "warn");
     } catch (e) { toast("Generation failed — try again", "err"); }
@@ -1636,6 +1669,46 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {inspector && (
+            <div style={{ marginTop: 14 }}>
+              <button onClick={() => setInspectorOpen(o => !o)} style={{ background: "none", border: "1px solid #d0c8f8", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#5b3e86", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                <Icon name="spark" size={12} /> {inspectorOpen ? "Hide" : "Show"} Prompt Inspector
+              </button>
+              {inspectorOpen && (
+                <div style={{ marginTop: 8, background: "#f8f7ff", border: "1px solid #d0c8f8", borderRadius: 8, padding: "10px 12px", fontSize: 11 }}>
+                  <div style={{ fontWeight: 700, color: "#2d1a7a", marginBottom: 8 }}>Prompt Inspector</div>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Context Variables</div>
+                      <div style={{ background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 10, lineHeight: 1.8 }}>
+                        {Object.entries(inspector.contextVariables).map(([k, v]) => (
+                          <div key={k}><span style={{ color: "#9b7aff" }}>{k}:</span> {Array.isArray(v) ? v.join(", ") || "(empty)" : String(v)}</div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Brand Line (injected into both stages)</div>
+                      <pre style={{ background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 10, whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0 }}>{inspector.brandLine}</pre>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 1 Prompt (sent to {inspector.model})</div>
+                      <pre style={{ background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 10, whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0, maxHeight: 150, overflowY: "auto" }}>{inspector.stage1Prompt}</pre>
+                    </div>
+                    {inspector.stage2Prompt && <>
+                      <div>
+                        <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 1 Strategy Output</div>
+                        <pre style={{ background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 10, whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0 }}>{inspector.stratSummary}</pre>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 2 Prompt (sent to {inspector.model})</div>
+                        <pre style={{ background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 10, whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0, maxHeight: 180, overflowY: "auto" }}>{inspector.stage2Prompt}</pre>
+                      </div>
+                    </>}
                   </div>
                 </div>
               )}
