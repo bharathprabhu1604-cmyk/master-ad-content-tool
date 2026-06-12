@@ -115,6 +115,10 @@
   .topbar .crumb { color: var(--ink-faint); font-weight: 500; font-size: 12.5px; }
 
   .content-scroll { flex: 1; overflow-y: auto; }
+  .screen-in { min-height: calc(100vh - 58px); }
+  @media (max-width: 860px) {
+    .screen-in { padding: 16px 14px !important; }
+  }
 
   /* selects */
   .field-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
@@ -1058,6 +1062,8 @@ const ICONS = {
   link: "M9 15l6-6M10 6l1-1a4 4 0 0 1 6 6l-1 1M14 18l-1 1a4 4 0 0 1-6-6l1-1",
   calendar: "M3 5h18v16H3zM3 9h18M8 3v4M16 3v4",
   logout: "M14 4h5v16h-5M10 8l-4 4 4 4M6 12h9",
+  menu: "M3 6h18M3 12h18M3 18h18",
+  close: "M18 6L6 18M6 6l12 12",
 };
 function Icon({ name, size = 18, stroke = 1.7, className = "", style = {}, fill = false }) {
   const d = ICONS[name] || "";
@@ -2184,6 +2190,11 @@ const sidebarCss = `
 .sidebar-foot { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,.07); font-size: 11px; color: #6f7b8e; }
 .sidebar-foot .reg { display: flex; align-items: center; gap: 6px; color: #93cda9; font-weight: 600; margin-bottom: 3px; }
 @media (max-width: 860px) { .sidebar { display: none; } }
+/* mobile nav drawer */
+.mob-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,.55); }
+.mob-drawer { width: 272px; height: 100%; overflow-y: auto; }
+.mob-drawer .sidebar { display: flex !important; width: 100%; height: 100%; position: static; }
+@media (max-width: 860px) { .mob-overlay { display: flex; } }
 `;
 
 function CompanySwitcher({ store }) {
@@ -2993,7 +3004,7 @@ function DashboardScreen({ store, onNav }) {
   const openCompany = (id, campId) => { store.setActiveCompany(id); onNav(campId ? "google" : "dashboard", campId); };
 
   return (
-    <div className="screen-in" style={{ padding: "24px 28px", maxWidth: 1380, margin: "0 auto" }}>
+    <div className="screen-in dash-screen" style={{ padding: "24px 28px", maxWidth: 1380, margin: "0 auto" }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 22, alignItems: "start" }} className="dash-grid">
         <div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }} className="stat-grid">
@@ -3019,7 +3030,7 @@ function DashboardScreen({ store, onNav }) {
           </div>
 
           {isGroup ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 14 }}>
+            <div className="co-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 14 }}>
               {companies.map(c => <CompanyCard key={c.id} co={c} camps={store.companyCampaigns(c.id)} onOpen={() => openCompany(c.id)} />)}
             </div>
           ) : (
@@ -3058,7 +3069,14 @@ function DashboardScreen({ store, onNav }) {
           </div>
         </div>
       </div>
-      <style>{`@media (max-width: 1080px){ .dash-grid{grid-template-columns:1fr !important;} .dash-rail{position:static !important;} .stat-grid{grid-template-columns:repeat(2,1fr) !important;} }`}</style>
+      <style>{`
+        @media (max-width: 1080px){ .dash-grid{grid-template-columns:1fr !important;} .dash-rail{position:static !important;} .stat-grid{grid-template-columns:repeat(2,1fr) !important;} }
+        @media (max-width: 600px){
+          .dash-screen{padding:16px 14px !important;}
+          .stat-grid{grid-template-columns:1fr 1fr !important;gap:10px !important;}
+          .co-grid{grid-template-columns:1fr !important;}
+        }
+      `}</style>
     </div>
   );
 }
@@ -5214,7 +5232,7 @@ function UserMenu({ store }) {
   );
 }
 
-function Topbar({ screen, store, onNav }) {
+function Topbar({ screen, store, onNav, onMenuOpen }) {
   const D = window.LAMF_DATA;
   const meta = SCREEN_META[screen] || { crumb: "", title: "" };
   const co = D.companyById(store.activeCompany === "all" ? "sccl" : store.activeCompany);
@@ -5223,17 +5241,30 @@ function Topbar({ screen, store, onNav }) {
     onNav("google"); };
   return (
     <div className="topbar">
+      <button className="mob-menu-btn" onClick={onMenuOpen}
+        style={{ display: "none", alignItems: "center", justifyContent: "center", background: "none", border: "none", padding: 6, borderRadius: 7, color: "var(--navy)", marginRight: 2 }}>
+        <Icon name="menu" size={20} />
+      </button>
       <div style={{ minWidth: 0 }}>
         <div className="crumb">{coName}{meta.crumb ? " · " + meta.crumb : ""}</div>
         <h1>{meta.title}</h1>
       </div>
       <div style={{ flex: 1 }}></div>
-      <CampaignSearch store={store} onPick={pick} />
-      <BulkToolsButton store={store} screen={screen} />
+      <div className="topbar-search"><CampaignSearch store={store} onPick={pick} /></div>
+      <div className="topbar-bulk"><BulkToolsButton store={store} screen={screen} /></div>
       <NotificationsBell />
-      <div style={{ width: 1, height: 26, background: "var(--line)" }}></div>
+      <div className="topbar-divider" style={{ width: 1, height: 26, background: "var(--line)" }}></div>
       <UserMenu store={store} />
-      <style>{`@media(max-width:680px){.user-meta{display:none;}}`}</style>
+      <style>{`
+        @media(max-width:680px){.user-meta{display:none;}}
+        @media(max-width:860px){
+          .mob-menu-btn{display:flex !important;}
+          .topbar-search{display:none;}
+          .topbar-bulk{display:none;}
+          .topbar-divider{display:none;}
+          .topbar{padding:0 14px;}
+        }
+      `}</style>
     </div>
   );
 }
@@ -5326,6 +5357,7 @@ function App() {
   const store = useStore();
   const [screen, setScreen] = uS(() => (location.hash || "").replace("#", "") || "dashboard");
   const [, setCampaign] = store.useCampaign();
+  const [mobileNav, setMobileNav] = uS(false);
 
   uE(() => { location.hash = screen; }, [screen]);
   uE(() => {
@@ -5378,8 +5410,18 @@ function App() {
   return (
     <div className="app">
       <Sidebar active={screen} onNav={nav} counts={counts} store={store} />
+      {mobileNav && (
+        <div className="mob-overlay" onClick={() => setMobileNav(false)}>
+          <div className="mob-drawer" onClick={e => e.stopPropagation()}>
+            <Sidebar active={screen} onNav={(id) => { nav(id); setMobileNav(false); }} counts={counts} store={store} />
+          </div>
+          <button onClick={() => setMobileNav(false)} style={{ position: "absolute", top: 14, left: 280, background: "rgba(255,255,255,.15)", border: "none", borderRadius: 8, padding: 8, color: "#fff", cursor: "pointer" }}>
+            <Icon name="close" size={20} />
+          </button>
+        </div>
+      )}
       <div className="main">
-        <Topbar screen={screen} store={store} onNav={nav} />
+        <Topbar screen={screen} store={store} onNav={nav} onMenuOpen={() => setMobileNav(true)} />
         <div className="content-scroll">{view}</div>
       </div>
     </div>
