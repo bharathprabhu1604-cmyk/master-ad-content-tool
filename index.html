@@ -1455,7 +1455,8 @@ async function aiGenerate(brief, ctx, onStage) {
   if (!key) return { ...fallbackGenerate(brief, ctx), note: "Add your API key in Settings to enable AI generation." };
 
   const { hl, d } = parseBriefCounts(brief);
-  const brandLine = `Product: ${ctx.name} (${ctx.short}). Channel: ${ctx.channel || "Google Search RSA"}. Rate: ${ctx.rate || "10.5%* p.a."}. Keywords: ${(ctx.keywords || []).join(", ") || "—"}. Theme: ${ctx.theme || ctx.name}.`;
+  const rateClause = ctx.rate ? `Rate: ${ctx.rate}.` : "";
+  const brandLine = `Product: ${ctx.name} (${ctx.short}). Channel: ${ctx.channel || "Google Search RSA"}. ${rateClause} Regulator: ${ctx.regulator || ""}. Keywords: ${(ctx.keywords || []).join(", ") || "—"}. Theme: ${ctx.theme || ctx.name}.`;
 
   try {
     // Stage 1 — think as a performance marketer
@@ -1480,10 +1481,10 @@ Respond with JSON only.`,
     // Stage 2 — write the copy
     if (onStage) onStage(2, "Writing headlines & descriptions…");
     const copyText = await callAI(
-      `You are a senior performance-marketing copywriter for ${ctx.name}, an Indian NBFC.
+      `You are a senior performance-marketing copywriter for ${ctx.name}, a regulated Indian financial services company.
 Strategy: ${stratSummary}
 ${brandLine}
-Brand rules: always write "${ctx.short}" correctly; keep rate "${ctx.rate || "10.5%* p.a."}" with the asterisk; "RBI Regulated NBFC" framing; never name competitors; no superlatives (best/lowest/cheapest); tone = trustworthy, benefit-led, human.
+Brand rules: always write "${ctx.short}" correctly; ${ctx.rate ? `always include rate "${ctx.rate}" with the asterisk;` : "do NOT mention any loan rates or interest rates — this product has none;"} regulatory framing: "${ctx.regulator || ""}"; never name competitors; no superlatives (best/lowest/cheapest); tone = trustworthy, benefit-led, human.
 
 Write ${hl} responsive-search HEADLINES (each MUST be ≤30 characters) and ${d} DESCRIPTIONS (each MUST be ≤90 characters).
 Every line must be distinct. No numbering. No prose.
@@ -2240,7 +2241,7 @@ function GoogleSearchScreen({ store }) {
   const previewAd = getAd(activeAd) || camp;
   const co = D.companyById(camp.company);
   const adCount = 1 + (camp.variations ? camp.variations.length : 0);
-  const ctx = { name: co.name, short: co.short, theme: camp.theme, keywords: camp.keywords || [], rate: D.brand.rate, channel: "Google " + (camp.type || "Search") + " RSA" };
+  const ctx = { name: co.name, short: co.short, theme: camp.theme, keywords: camp.keywords || [], rate: co.id === "sccl" ? D.brand.rate : null, regulator: co.regulator || "", channel: "Google " + (camp.type || "Search") + " RSA" };
   const addToList = (list, t, max) => { const e = list.findIndex(x => !x.text.trim()); if (e >= 0) list[e].text = t; else if (list.length < max) list.push({ text: t, pin: null }); };
   const aiAddHeadline = (t) => editAd(activeAd, a => addToList(a.headlines, t, 15));
   const aiAddDescription = (t) => editAd(activeAd, a => addToList(a.descriptions, t, 4));
@@ -2983,7 +2984,7 @@ function BingScreen({ store }) {
   const getAd = (adKey) => adKey === "main" ? camp : (camp.bingVar || [])[adKey];
   const previewAd = getAd(activeAd) || camp;
   const co = D.companyById(camp.company);
-  const ctx = { name: co.name, short: co.short, theme: camp.theme, keywords: camp.keywords || [], rate: D.brand.rate, channel: "Microsoft Bing RSA" };
+  const ctx = { name: co.name, short: co.short, theme: camp.theme, keywords: camp.keywords || [], rate: co.id === "sccl" ? D.brand.rate : null, regulator: co.regulator || "", channel: "Microsoft Bing RSA" };
   const addToList = (list, t, max) => { const e = list.findIndex(x => !x.text.trim()); if (e >= 0) list[e].text = t; else if (list.length < max) list.push({ text: t, pin: null }); };
   const aiAddHeadline = (t) => editAd(activeAd, a => addToList(a.headlines, t, 15));
   const aiAddDescription = (t) => editAd(activeAd, a => addToList(a.descriptions, t, 4));
