@@ -4643,14 +4643,14 @@ function useStore() {
   const [activeCompany, setActiveCompanyRaw] = uS(() => init.activeCompany || "all");
   const [userId, setUserId] = uS(() => init.userId || "priya");
   const [activeCampaign, setActiveCampaign] = uS(() => init.activeCampaign || campaigns[0].id);
-  const [authed, setAuthed] = uS(() => !!init.authed);
+  const [authed, setAuthed] = uS(false); // never persisted — always require login on page load
   const bingFromRef = uR(null);
 
   uE(() => {
     const t = setTimeout(() => localStorage.setItem(LS_KEY,
-      JSON.stringify({ campaigns, compliance, tracker, metaCampaigns, activeCompany, userId, activeCampaign, authed })), 200);
+      JSON.stringify({ campaigns, compliance, tracker, metaCampaigns, activeCompany, userId, activeCampaign })), 200);
     return () => clearTimeout(t);
-  }, [campaigns, compliance, tracker, metaCampaigns, activeCompany, userId, activeCampaign, authed]);
+  }, [campaigns, compliance, tracker, metaCampaigns, activeCompany, userId, activeCampaign]);
 
   const getCampaign = uC(id => campaigns.find(c => c.id === id) || campaigns[0], [campaigns]);
   const editCampaign = uC((id, fn) => setCampaigns(cs => cs.map(c => {
@@ -4892,14 +4892,15 @@ function Topbar({ screen, store, onNav }) {
 /* ---------- login screen ---------- */
 const _AK = "YWRtaW46Tm92YWMxQA=="; // base64("admin:Novac1@") — UI-level access guard
 function LoginScreen({ store }) {
-  const [user, setUser] = uS("");
+  const D = window.LAMF_DATA;
+  const [username, setUsername] = uS("");
   const [pw, setPw] = uS("");
   const [showPw, setShowPw] = uS(false);
   const [err, setErr] = uS("");
   const [shake, setShake] = uS(false);
   const submit = (e) => {
     e && e.preventDefault();
-    if (typeof btoa !== "undefined" && btoa(user.trim() + ":" + pw.trim()) === _AK) {
+    if (typeof btoa !== "undefined" && btoa(username.trim() + ":" + pw.trim()) === _AK) {
       setErr("");
       store.signIn();
     } else {
@@ -4909,35 +4910,47 @@ function LoginScreen({ store }) {
     }
   };
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--navy-900)" }}>
-      <form onSubmit={submit} className="card" style={{ width: 360, maxWidth: "calc(100vw - 32px)", padding: "32px 28px", animation: shake ? "loginShake .5s ease" : "none" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-          <div style={{ width: 38, height: 38, borderRadius: 9, background: "linear-gradient(150deg, var(--gold), #b8973f)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "var(--navy-900)", fontSize: 18, flexShrink: 0 }}>S</div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: "var(--navy)" }}>SCCL Content Tool</div>
-            <div style={{ fontSize: 11.5, color: "var(--ink-faint)" }}>Shriram Group · Internal</div>
+    <div style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: "1fr 1fr" }} className="login-wrap">
+      {/* left brand panel */}
+      <div style={{ background: "var(--navy-900)", color: "#fff", padding: "48px 52px", display: "flex", flexDirection: "column", justifyContent: "space-between" }} className="login-brand">
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(150deg, var(--gold), #b8973f)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "var(--navy-900)", fontSize: 19 }}>S</div>
+          <div><div style={{ fontWeight: 700, fontSize: 16 }}>SCCL Content Tool</div><div style={{ fontSize: 12, color: "var(--gold)", fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase" }}>Shriram Group</div></div>
+        </div>
+        <div>
+          <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1.2, letterSpacing: "-.02em", marginBottom: 14 }}>One workspace for every<br />Shriram company's content.</div>
+          <div style={{ fontSize: 14.5, color: "#aeb9cb", lineHeight: 1.6, maxWidth: 420 }}>Plan, write and review paid + organic + automation copy across SCCL, Shriram Financial Services, Fortune, Insights and Wealth — with compliance and tracking built in.</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {D.companies.filter(c => !c.group).map(c => (
+            <span key={c.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "#cdd6e3", background: "rgba(255,255,255,.06)", borderRadius: 20, padding: "5px 11px" }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: c.accent }}></span>{c.short}
+            </span>
+          ))}
+        </div>
+      </div>
+      {/* right login form */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40, background: "var(--bg)" }}>
+        <form onSubmit={submit} className="card" style={{ width: 380, maxWidth: "100%", padding: 30, animation: shake ? "loginShake .5s ease" : "none" }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--navy)" }}>Sign in</div>
+          <div style={{ fontSize: 13, color: "var(--ink-faint)", marginBottom: 22, marginTop: 2 }}>Authorised access only.</div>
+          <label className="field-label">Username</label>
+          <input className="input" type="text" value={username} onChange={e => { setUsername(e.target.value); setErr(""); }}
+            placeholder="username" style={{ marginBottom: 12 }} autoFocus autoComplete="username" />
+          <label className="field-label">Password</label>
+          <div style={{ position: "relative", marginBottom: err ? 8 : 18 }}>
+            <input className="input" type={showPw ? "text" : "password"} value={pw} onChange={e => { setPw(e.target.value); setErr(""); }}
+              placeholder="••••••••" style={{ paddingRight: 38 }} autoComplete="current-password" />
+            <button type="button" onClick={() => setShowPw(s => !s)} tabIndex={-1}
+              style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--ink-faint)", cursor: "pointer", padding: 0, fontSize: 13 }}>
+              {showPw ? "🙈" : "👁"}
+            </button>
           </div>
-        </div>
-        <div style={{ fontSize: 19, fontWeight: 700, color: "var(--navy)", marginBottom: 4 }}>Sign in</div>
-        <div style={{ fontSize: 12.5, color: "var(--ink-faint)", marginBottom: 22 }}>Authorised access only.</div>
-        <label className="field-label">Username</label>
-        <input className="input" type="text" value={user} onChange={e => { setUser(e.target.value); setErr(""); }}
-          placeholder="username" style={{ marginBottom: 12 }} autoFocus autoComplete="username" />
-        <label className="field-label">Password</label>
-        <div style={{ position: "relative", marginBottom: err ? 8 : 20 }}>
-          <input className="input" type={showPw ? "text" : "password"} value={pw} onChange={e => { setPw(e.target.value); setErr(""); }}
-            placeholder="••••••••" style={{ paddingRight: 38 }} autoComplete="current-password" />
-          <button type="button" onClick={() => setShowPw(s => !s)} tabIndex={-1}
-            style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--ink-faint)", cursor: "pointer", padding: 0, fontSize: 13 }}>
-            {showPw ? "🙈" : "👁"}
-          </button>
-        </div>
-        {err && <div style={{ color: "var(--red)", fontSize: 12, marginBottom: 14 }}>{err}</div>}
-        <button type="submit" className="btn btn-primary" style={{ width: "100%", justifyContent: "center", padding: "10px 13px" }}>
-          Sign in <Icon name="arrowRight" size={15} />
-        </button>
-      </form>
-      <style>{`@keyframes loginShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}`}</style>
+          {err && <div style={{ color: "var(--red)", fontSize: 12, marginBottom: 14 }}>{err}</div>}
+          <button type="submit" className="btn btn-primary" style={{ width: "100%", justifyContent: "center", padding: "10px 13px" }}>Sign in <Icon name="arrowRight" size={15} /></button>
+        </form>
+      </div>
+      <style>{`@media(max-width:820px){ .login-wrap{grid-template-columns:1fr !important;} .login-brand{display:none !important;} } @keyframes loginShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}`}</style>
     </div>
   );
 }
