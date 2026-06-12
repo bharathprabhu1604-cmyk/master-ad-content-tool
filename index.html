@@ -3485,10 +3485,12 @@ function AISettingsCard() {
   });
   const [testing, setTesting] = React.useState(false);
   const [show, setShow] = React.useState(false);
+  const [diag, setDiag] = React.useState(null);
 
   const switchProvider = (p) => {
     setProvider(p);
     setKey("");
+    setDiag(null);
     if (p === "anthropic") setModel("claude-sonnet-4-6");
     else if (p === "gemini") setModel("gemini-2.0-flash");
     else if (p === "groq") setModel("llama-3.3-70b-versatile");
@@ -3499,47 +3501,81 @@ function AISettingsCard() {
     const k = key.trim();
     if (!k) { toast("Enter an API key first", "warn"); return; }
     setTesting(true);
+    setDiag(null);
+    const d = { modelUsed: null, httpStatus: null, responseBody: null, freeModelsCount: null, freeModelsList: null, fallbackUsed: null };
     try {
       let ok = false;
       if (provider === "openrouter" || provider === "groq") {
         const endpoint = provider === "groq"
           ? "https://api.groq.com/openai/v1/chat/completions"
           : "https://openrouter.ai/api/v1/chat/completions";
-        const testModel = provider === "groq" ? "llama-3.1-8b-instant" : model;
         const headers = { "Authorization": `Bearer ${k}`, "Content-Type": "application/json", "X-Title": "LAMF Ad Content Tool" };
         if (provider === "openrouter") headers["HTTP-Referer"] = "https://master-ad-content-tool.onrender.com";
-        const ctrl = new AbortController();
-        setTimeout(() => ctrl.abort(), 15000);
-        const res = await fetch(endpoint, {
-          method: "POST", signal: ctrl.signal, headers,
-          body: JSON.stringify({ model: testModel, max_tokens: 10, messages: [{ role: "user", content: "Say OK." }] }),
-        });
-        if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+
+        const ping = async (m) => {
+          const ctrl = new AbortController();
+          setTimeout(() => ctrl.abort(), 20000);
+          const r = await fetch(endpoint, {
+            method: "POST", signal: ctrl.signal, headers,
+            body: JSON.stringify({ model: m, max_tokens: 10, messages: [{ role: "user", content: "Say OK." }] }),
+          });
+          const body = await r.text();
+          return { status: r.status, ok: r.ok, body, model: m };
+        };
+
+        const initialModel = provider === "groq" ? "llama-3.1-8b-instant" : model;
+        let result = await ping(initialModel);
+        d.modelUsed = result.model; d.httpStatus = result.status; d.responseBody = result.body;
+
+        if (!result.ok && provider === "openrouter") {
+          // Fetch live free models from OpenRouter
+          const mRes = await fetch("https://openrouter.ai/api/v1/models", { headers: { "Authorization": `Bearer ${k}` } });
+          const mJson = await mRes.json().catch(() => ({ data: [] }));
+          const freeIds = (mJson.data || []).filter(m => m.id.endsWith(":free")).map(m => m.id);
+          d.freeModelsCount = freeIds.length;
+          d.freeModelsList = freeIds.slice(0, 15);
+          // Try fallbacks (skip the one that already failed)
+          for (const fb of freeIds.filter(m => m !== model).slice(0, 3)) {
+            result = await ping(fb);
+            d.modelUsed = result.model; d.httpStatus = result.status; d.responseBody = result.body;
+            if (result.ok) { d.fallbackUsed = fb; break; }
+          }
+        }
+
+        if (!result.ok) {
+          const errBody = (() => { try { return JSON.parse(result.body); } catch { return {}; } })();
+          throw new Error(errBody.error?.message || `HTTP ${result.status}`);
+        }
         ok = true;
       } else if (provider === "gemini") {
-        const res = await fetch(
+        const r = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${k}`,
           { method: "POST", headers: { "content-type": "application/json" },
             body: JSON.stringify({ contents: [{ parts: [{ text: "Say OK." }] }], generationConfig: { maxOutputTokens: 10 } }) }
         );
-        if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+        d.httpStatus = r.status; d.responseBody = await r.text(); d.modelUsed = model;
+        if (!r.ok) { const e = JSON.parse(d.responseBody || "{}"); throw new Error(e.error?.message || `HTTP ${r.status}`); }
         ok = true;
       } else {
-        const res = await fetch("https://api.anthropic.com/v1/messages", {
+        const r = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: { "x-api-key": k, "anthropic-version": "2023-06-01", "content-type": "application/json", "anthropic-dangerous-direct-browser-access": "true" },
           body: JSON.stringify({ model, max_tokens: 10, messages: [{ role: "user", content: "Say OK." }] }),
         });
-        if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+        d.httpStatus = r.status; d.responseBody = await r.text(); d.modelUsed = model;
+        if (!r.ok) { const e = JSON.parse(d.responseBody || "{}"); throw new Error(e.error?.message || `HTTP ${r.status}`); }
         ok = true;
       }
       if (ok) {
+        const savedModel = d.fallbackUsed || model;
+        if (d.fallbackUsed) setModel(d.fallbackUsed);
         localStorage.setItem("lamf_ai_key", k);
-        localStorage.setItem("lamf_ai_model", model);
+        localStorage.setItem("lamf_ai_model", savedModel);
         localStorage.setItem("lamf_ai_provider", provider);
-        toast("Connection successful — AI generation is live!", "ok");
+        toast(d.fallbackUsed ? `Connected via fallback: ${d.fallbackUsed}` : "Connection successful — AI generation is live!", "ok");
       }
     } catch (e) { toast("Connection failed: " + e.message, "err"); }
+    setDiag({ ...d });
     setTesting(false);
   };
 
@@ -3625,7 +3661,6 @@ function AISettingsCard() {
               <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B — Meta's best, free</option>
               <option value="deepseek/deepseek-r1:free">DeepSeek R1 — Deep reasoning, slower, free</option>
               <option value="google/gemma-4-26b-a4b-it:free">Gemma 4 26B — Google's latest, free</option>
-              <option value="mistralai/mistral-7b-instruct:free">Mistral 7B — Lightweight, free</option>
             </> : isGroq ? <>
               <option value="llama-3.3-70b-versatile">Llama 3.3 70B — Best quality, free (recommended)</option>
               <option value="llama-3.1-8b-instant">Llama 3.1 8B — Fastest, also free</option>
@@ -3649,6 +3684,28 @@ function AISettingsCard() {
           <button className="btn btn-ghost" onClick={save}><Icon name="check" size={15} /> Save</button>
         </div>
       </div>
+      {diag && (
+        <div style={{ marginTop: 14, background: "#f8f7ff", border: "1px solid #d0c8f8", borderRadius: 8, padding: "10px 12px", fontSize: 11.5 }}>
+          <div style={{ fontWeight: 700, color: "#2d1a7a", marginBottom: 8, fontSize: 12 }}>Diagnostic</div>
+          <div style={{ display: "grid", gap: 4 }}>
+            <div><span style={{ color: "var(--ink-faint)" }}>Model used:</span> <code style={{ background: "#ede9ff", padding: "1px 5px", borderRadius: 3, fontSize: 11 }}>{diag.modelUsed || "—"}</code>{diag.fallbackUsed && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#c08000", background: "#fff8e1", borderRadius: 3, padding: "1px 5px" }}>FALLBACK</span>}</div>
+            <div><span style={{ color: "var(--ink-faint)" }}>HTTP status:</span> <span style={{ fontWeight: 700, color: diag.httpStatus >= 200 && diag.httpStatus < 300 ? "var(--green)" : "#d0021b" }}>{diag.httpStatus ?? "—"}</span></div>
+            {diag.freeModelsCount !== null && <div><span style={{ color: "var(--ink-faint)" }}>Free models on OpenRouter:</span> <b>{diag.freeModelsCount}</b></div>}
+            {diag.freeModelsList && diag.freeModelsList.length > 0 && (
+              <div style={{ marginTop: 4 }}>
+                <div style={{ color: "var(--ink-faint)", marginBottom: 3 }}>Currently active free model IDs:</div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 10, background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "5px 7px", maxHeight: 130, overflowY: "auto", lineHeight: 1.9 }}>
+                  {diag.freeModelsList.map(m => <div key={m}>{m}</div>)}
+                </div>
+              </div>
+            )}
+            <div style={{ marginTop: 4 }}>
+              <div style={{ color: "var(--ink-faint)", marginBottom: 3 }}>OpenRouter response body:</div>
+              <pre style={{ fontFamily: "var(--mono)", fontSize: 10, background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "5px 7px", maxHeight: 100, overflowY: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0 }}>{diag.responseBody || "—"}</pre>
+            </div>
+          </div>
+        </div>
+      )}
       <style>{`.ai-spin{width:13px;height:13px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:inline-block;animation:aispin .7s linear infinite;}@keyframes aispin{to{transform:rotate(360deg);}}`}</style>
     </div>
   );
