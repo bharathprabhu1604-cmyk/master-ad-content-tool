@@ -1377,7 +1377,7 @@ function getAiModel() {
   if (p === "anthropic") return "claude-sonnet-4-6";
   if (p === "gemini") return "gemini-2.0-flash";
   if (p === "groq") return "llama-3.3-70b-versatile";
-  return "deepseek/deepseek-chat-v3-5:free"; // openrouter default — fast, no reasoning overhead
+  return "deepseek/deepseek-chat-v3-0324:free"; // openrouter default — fast, no reasoning overhead
 }
 
 async function callAI(prompt, maxTokens, timeoutMs = 90000) {
@@ -3481,7 +3481,7 @@ function AISettingsCard() {
     if (p === "anthropic") return "claude-sonnet-4-6";
     if (p === "gemini") return "gemini-2.0-flash";
     if (p === "groq") return "llama-3.3-70b-versatile";
-    return "deepseek/deepseek-r1:free";
+    return "deepseek/deepseek-chat-v3-0324:free";
   });
   const [testing, setTesting] = React.useState(false);
   const [show, setShow] = React.useState(false);
@@ -3492,7 +3492,7 @@ function AISettingsCard() {
     if (p === "anthropic") setModel("claude-sonnet-4-6");
     else if (p === "gemini") setModel("gemini-2.0-flash");
     else if (p === "groq") setModel("llama-3.3-70b-versatile");
-    else setModel("deepseek/deepseek-chat-v3-5:free");
+    else setModel("deepseek/deepseek-chat-v3-0324:free");
   };
 
   const test = async () => {
@@ -3506,7 +3506,7 @@ function AISettingsCard() {
           ? "https://api.groq.com/openai/v1/chat/completions"
           : "https://openrouter.ai/api/v1/chat/completions";
         // Always use a fast model for connection test (DeepSeek R1 is too slow for ping)
-        const testModel = provider === "groq" ? "llama-3.1-8b-instant" : "meta-llama/llama-3.1-8b-instant:free";
+        const testModel = provider === "groq" ? "llama-3.1-8b-instant" : "meta-llama/llama-3.1-8b-instruct:free";
         const headers = { "Authorization": `Bearer ${k}`, "Content-Type": "application/json", "X-Title": "LAMF Ad Content Tool" };
         if (provider === "openrouter") headers["HTTP-Referer"] = "https://master-ad-content-tool.onrender.com";
         const ctrl = new AbortController();
@@ -3622,10 +3622,10 @@ function AISettingsCard() {
           <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--navy)", display: "block", marginBottom: 5 }}>Model</label>
           <select className="select" value={model} onChange={e => setModel(e.target.value)} style={{ maxWidth: 420 }}>
             {isOpenRouter ? <>
-              <option value="deepseek/deepseek-chat-v3-5:free">DeepSeek V3 — Fast, smart, free (recommended)</option>
+              <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 — Fast, smart, free (recommended)</option>
               <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B — Meta's best, free</option>
               <option value="deepseek/deepseek-r1:free">DeepSeek R1 — Deep reasoning, slower, free</option>
-              <option value="google/gemma-2-9b-it:free">Gemma 2 9B — Google model, free</option>
+              <option value="google/gemma-4-26b-a4b-it:free">Gemma 4 26B — Google's latest, free</option>
               <option value="mistralai/mistral-7b-instruct:free">Mistral 7B — Lightweight, free</option>
             </> : isGroq ? <>
               <option value="llama-3.3-70b-versatile">Llama 3.3 70B — Best quality, free (recommended)</option>
