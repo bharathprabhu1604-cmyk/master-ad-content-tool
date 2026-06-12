@@ -1377,7 +1377,7 @@ function getAiModel() {
   if (p === "anthropic") return "claude-sonnet-4-6";
   if (p === "gemini") return "gemini-2.0-flash";
   if (p === "groq") return "llama-3.3-70b-versatile";
-  return "meta-llama/llama-3.3-70b-instruct:free"; // openrouter default
+  return "deepseek/deepseek-r1:free"; // openrouter default
 }
 
 async function callAI(prompt, maxTokens) {
@@ -3465,7 +3465,7 @@ function AISettingsCard() {
     if (p === "anthropic") return "claude-sonnet-4-6";
     if (p === "gemini") return "gemini-2.0-flash";
     if (p === "groq") return "llama-3.3-70b-versatile";
-    return "meta-llama/llama-3.3-70b-instruct:free";
+    return "deepseek/deepseek-r1:free";
   });
   const [testing, setTesting] = React.useState(false);
   const [show, setShow] = React.useState(false);
@@ -3476,7 +3476,7 @@ function AISettingsCard() {
     if (p === "anthropic") setModel("claude-sonnet-4-6");
     else if (p === "gemini") setModel("gemini-2.0-flash");
     else if (p === "groq") setModel("llama-3.3-70b-versatile");
-    else setModel("meta-llama/llama-3.3-70b-instruct:free");
+    else setModel("deepseek/deepseek-r1:free");
   };
 
   const test = async () => {
@@ -3601,10 +3601,11 @@ function AISettingsCard() {
           <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--navy)", display: "block", marginBottom: 5 }}>Model</label>
           <select className="select" value={model} onChange={e => setModel(e.target.value)} style={{ maxWidth: 420 }}>
             {isOpenRouter ? <>
-              <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B — Best quality (free)</option>
-              <option value="google/gemma-2-9b-it:free">Gemma 2 9B — Google model (free)</option>
-              <option value="mistralai/mistral-7b-instruct:free">Mistral 7B — Fast &amp; reliable (free)</option>
-              <option value="microsoft/phi-3-mini-128k-instruct:free">Phi-3 Mini — Lightweight (free)</option>
+              <option value="deepseek/deepseek-r1:free">DeepSeek R1 — Best reasoning, free (recommended)</option>
+              <option value="deepseek/deepseek-chat-v3-5:free">DeepSeek V3 — Fast &amp; smart, free</option>
+              <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B — Meta's best, free</option>
+              <option value="google/gemma-2-9b-it:free">Gemma 2 9B — Google model, free</option>
+              <option value="mistralai/mistral-7b-instruct:free">Mistral 7B — Lightweight, free</option>
             </> : isGroq ? <>
               <option value="llama-3.3-70b-versatile">Llama 3.3 70B — Best quality, free (recommended)</option>
               <option value="llama-3.1-8b-instant">Llama 3.1 8B — Fastest, also free</option>
