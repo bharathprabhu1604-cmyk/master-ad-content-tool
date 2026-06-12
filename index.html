@@ -20,10 +20,10 @@
     --gold-soft: #f3ead0;
     --gold-tint: #faf6ea;
     /* neutrals */
-    --bg: #F7F7F7;
+    --bg: #f8f9fa;
     --surface: #ffffff;
-    --line: #e6e8ec;
-    --line-strong: #d6d9df;
+    --line: #e0e3e8;
+    --line-strong: #cdd0d7;
     --ink: #1c2531;
     --ink-soft: #5b6573;
     --ink-faint: #8a93a1;
@@ -106,13 +106,13 @@
   .st-live .dot { background: #0c9a63; box-shadow: 0 0 0 3px rgba(12,154,99,.18); }
 
   /* ---------- Cards ---------- */
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: none; transition: box-shadow .15s; }
 
   /* ---------- Topbar ---------- */
-  .topbar { height: 64px; background: var(--surface); border-bottom: 1px solid var(--line);
-    display: flex; align-items: center; gap: 16px; padding: 0 26px; position: sticky; top: 0; z-index: 20; }
-  .topbar h1 { font-size: 16px; font-weight: 700; margin: 0; letter-spacing: -.2px; }
-  .topbar .crumb { color: var(--ink-faint); font-weight: 500; font-size: 13px; }
+  .topbar { height: 58px; background: var(--surface); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 16px; padding: 0 24px; position: sticky; top: 0; z-index: 20; box-shadow: 0 1px 3px rgba(26,43,74,.05); }
+  .topbar h1 { font-size: 15px; font-weight: 700; margin: 0; letter-spacing: -.2px; color: var(--navy); }
+  .topbar .crumb { color: var(--ink-faint); font-weight: 500; font-size: 12.5px; }
 
   .content-scroll { flex: 1; overflow-y: auto; }
 
@@ -2173,14 +2173,14 @@ const sidebarCss = `
 .nav-parent .nav-caret { margin-left: auto; transition: transform .15s; opacity: .6; flex-shrink: 0; }
 .nav-parent.open .nav-caret { transform: rotate(90deg); }
 .nav-parent.has-active { color: #e7ecf3; }
-.nav-children { margin: 1px 0 3px; padding-left: 12px; margin-left: 19px; border-left: 1px solid rgba(255,255,255,.09); display: flex; flex-direction: column; gap: 1px; }
-.nav-sub { display: flex; align-items: center; gap: 9px; padding: 6px 11px; border-radius: 7px; color: #93a0b3; font-weight: 500; font-size: 12.5px; cursor: pointer; transition: background .13s, color .13s; }
-.nav-sub:hover { background: rgba(255,255,255,.06); color: #e7ecf3; }
-.nav-sub.active { background: var(--navy-700); color: #fff; font-weight: 600; }
-.nav-sub .ic { opacity: .7; flex-shrink: 0; }
+.nav-children { margin: 2px 0 4px; padding-left: 8px; margin-left: 22px; border-left: 1.5px solid rgba(255,255,255,.1); display: flex; flex-direction: column; gap: 1px; }
+.nav-sub { display: flex; align-items: center; gap: 9px; padding: 6px 11px; border-radius: 7px; color: #8a9ab3; font-weight: 500; font-size: 12.5px; cursor: pointer; transition: background .13s, color .13s; border-left: 2px solid transparent; }
+.nav-sub:hover { background: rgba(255,255,255,.07); color: #d4dce8; }
+.nav-sub.active { background: rgba(200,169,81,.12); color: #e8d898; border-left-color: var(--gold); font-weight: 600; }
+.nav-sub .ic { opacity: .65; flex-shrink: 0; }
 .nav-sub.active .ic { opacity: 1; color: var(--gold); }
 .nav-sub .nav-count { margin-left: auto; font-size: 10px; font-family: var(--mono); background: rgba(255,255,255,.1); color: #cbd4e1; padding: 1px 6px; border-radius: 10px; }
-.nav-sub.active .nav-count { background: rgba(200,169,81,.22); color: var(--gold); }
+.nav-sub.active .nav-count { background: rgba(200,169,81,.25); color: var(--gold); }
 .sidebar-foot { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,.07); font-size: 11px; color: #6f7b8e; }
 .sidebar-foot .reg { display: flex; align-items: center; gap: 6px; color: #93cda9; font-weight: 600; margin-bottom: 3px; }
 @media (max-width: 860px) { .sidebar { display: none; } }
@@ -2867,15 +2867,16 @@ Object.assign(window, { CampaignsScreen, AdGroupsScreen, typePill });
 <script type="text/babel">
 /* SCREEN 1 — Dashboard. Group overview (all companies) + per-company campaign view. */
 function StatCard({ label, value, sub, icon, accent }) {
+  const isGold = accent === "gold";
   return (
-    <div className="card" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 2 }}>
+    <div style={{ background: "#fff", border: "1px solid #e0e3e8", borderRadius: 10, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 6 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>{label}</span>
-        <div style={{ width: 30, height: 30, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
-          background: accent === "gold" ? "var(--gold-tint)" : "#eef1f6", color: accent === "gold" ? "var(--gold)" : "var(--navy)" }}><Icon name={icon} size={16} /></div>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", textTransform: "uppercase", letterSpacing: ".05em" }}>{label}</span>
+        <div style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+          background: isGold ? "var(--gold-tint)" : "#eef2fb", color: isGold ? "var(--gold)" : "var(--blue)" }}><Icon name={icon} size={16} /></div>
       </div>
-      <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-.02em", color: "var(--navy)", lineHeight: 1.1 }}>{value}</div>
-      <div style={{ fontSize: 12, color: "var(--ink-faint)" }}>{sub}</div>
+      <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-.03em", color: "var(--navy)", lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 11.5, color: "var(--ink-faint)", lineHeight: 1.4 }}>{sub}</div>
     </div>
   );
 }
@@ -2889,40 +2890,46 @@ function pctComplete(camps) {
 /* group view — one card per company */
 function CompanyCard({ co, camps, onOpen }) {
   const D = window.LAMF_DATA;
-  const st = D.companyStats[co.id] || { paid: camps.length, organic: 0, automation: 0 };
-  const pct = pctComplete(camps);
-  const total = st.paid + st.organic + st.automation;
+  const st = D.companyStats[co.id] || { organic: 0, automation: 0 };
+  const paidCount = camps.length; // live count from store
+  const approved = camps.filter(c => c.status === "Approved" || c.status === "Live").length;
+  const pct = paidCount > 0 ? Math.round((approved / paidCount) * 100) : 0;
+  const total = paidCount + st.organic + st.automation;
+  const channels = (co.channels || []).slice(0, 3);
   return (
-    <div className="card" style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", cursor: "pointer", transition: "box-shadow .15s, transform .15s" }}
+    <div style={{ background: "#fff", border: "1px solid #e0e3e8", borderRadius: 10, borderLeft: `4px solid ${co.accent}`, overflow: "hidden", cursor: "pointer", transition: "box-shadow .15s, transform .12s", display: "flex", flexDirection: "column" }}
       onClick={onOpen}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = "var(--shadow-md)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(26,43,74,.12)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}>
-      <div style={{ height: 4, background: co.accent }}></div>
-      <div style={{ padding: "15px 16px", flex: 1 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 12 }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 14.5, color: "var(--navy)", letterSpacing: "-.01em" }}>{co.name}</div>
-            <div style={{ fontSize: 11.5, color: "var(--ink-faint)" }}>{co.flagship}</div>
-          </div>
-          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--green)", background: "var(--green-bg)", borderRadius: 5, padding: "2px 7px", whiteSpace: "nowrap" }}>{co.regulator}</span>
+      <div style={{ padding: "14px 16px 10px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 3 }}>
+          <div style={{ fontWeight: 700, fontSize: 14.5, color: "var(--navy)", letterSpacing: "-.01em" }}>{co.name}</div>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--green)", background: "var(--green-bg)", borderRadius: 5, padding: "2px 7px", whiteSpace: "nowrap", flexShrink: 0 }}>{co.regulator}</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 13 }}>
-          {[["Paid", st.paid], ["Organic", st.organic], ["Automation", st.automation]].map(([k, v]) => (
-            <div key={k} style={{ background: "#f7f8fa", borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "var(--navy)" }}>{v}</div>
-              <div style={{ fontSize: 10, color: "var(--ink-faint)", fontWeight: 600 }}>{k}</div>
+        <div style={{ fontSize: 11.5, color: "var(--ink-faint)", marginBottom: 13 }}>{co.tagline}</div>
+        <div style={{ display: "flex", borderRadius: 8, border: "1px solid #e8eaed", overflow: "hidden" }}>
+          {[["Campaigns", paidCount], ["Organic", st.organic], ["Automation", st.automation]].map(([label, val], i) => (
+            <div key={label} style={{ flex: 1, padding: "9px 0", textAlign: "center", borderRight: i < 2 ? "1px solid #e8eaed" : "none", background: "#fafbfc" }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "var(--navy)", letterSpacing: "-.03em", lineHeight: 1.1 }}>{val}</div>
+              <div style={{ fontSize: 10, color: "var(--ink-faint)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".04em", marginTop: 2 }}>{label}</div>
             </div>
           ))}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 5, color: "var(--ink-soft)" }}>
-          <span>{total} content units</span><span style={{ fontFamily: "var(--mono)", fontWeight: 600 }}>{pct}% approved</span>
+      </div>
+      <div style={{ padding: "6px 16px 12px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--ink-faint)", marginBottom: 5 }}>
+          <span>{total} content units</span>
+          <span style={{ fontFamily: "var(--mono)", fontWeight: 600, color: pct > 0 ? "var(--green)" : "var(--ink-faint)" }}>{pct}% approved</span>
         </div>
-        <div style={{ height: 6, background: "#eef0f3", borderRadius: 4, overflow: "hidden" }}>
-          <div style={{ width: pct + "%", height: "100%", borderRadius: 4, background: co.accent, transition: "width .4s" }}></div>
+        <div style={{ height: 4, background: "#eef0f3", borderRadius: 2, overflow: "hidden" }}>
+          <div style={{ width: pct + "%", height: "100%", background: co.accent, transition: "width .4s", borderRadius: 2 }}></div>
         </div>
       </div>
-      <div style={{ padding: "10px 16px", borderTop: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between", color: co.accent, fontWeight: 600, fontSize: 12.5 }}>
-        Open workspace <Icon name="arrowRight" size={15} />
+      <div style={{ padding: "9px 16px", borderTop: "1px solid #f0f2f5", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fafbfc" }}>
+        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+          {channels.map((ch, i) => <span key={i} style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-soft)", background: "#eef0f3", borderRadius: 4, padding: "2px 6px" }}>{ch}</span>)}
+        </div>
+        <span style={{ fontSize: 12, fontWeight: 700, color: co.accent, display: "flex", alignItems: "center", gap: 4 }}>Open workspace <Icon name="arrowRight" size={13} /></span>
       </div>
     </div>
   );
@@ -2974,7 +2981,7 @@ function DashboardScreen({ store, onNav }) {
   const approved = camps.filter(c => c.status === "Approved" || c.status === "Live").length;
   const pending = camps.length - approved;
   const companies = D.companies.filter(c => !c.group);
-  const groupUnits = companies.reduce((n, c) => { const s = D.companyStats[c.id]; return n + s.paid + s.organic + s.automation; }, 0);
+  const groupUnits = companies.reduce((n, c) => { const s = D.companyStats[c.id]; return n + store.companyCampaigns(c.id).length + s.organic + s.automation; }, 0);
 
   const activity = [
     { who: "Priya Nair", act: "edited headlines on", what: "LAMF · Personal Loan Intercept", when: "12 min ago", icon: "edit" },
