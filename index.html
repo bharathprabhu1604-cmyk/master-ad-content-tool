@@ -1369,29 +1369,42 @@ function fallbackGenerate(brief, ctx) {
 }
 
 function getAiKey() { return localStorage.getItem("lamf_ai_key") || ""; }
-function getAiProvider() { return localStorage.getItem("lamf_ai_provider") || "gemini"; }
+function getAiProvider() { return localStorage.getItem("lamf_ai_provider") || "groq"; }
 function getAiModel() {
   const p = getAiProvider();
-  return localStorage.getItem("lamf_ai_model") || (p === "anthropic" ? "claude-sonnet-4-6" : "gemini-2.0-flash");
+  const saved = localStorage.getItem("lamf_ai_model");
+  if (saved) return saved;
+  if (p === "anthropic") return "claude-sonnet-4-6";
+  if (p === "gemini") return "gemini-2.0-flash";
+  return "llama-3.3-70b-versatile"; // groq default
 }
 
 async function callAI(prompt, maxTokens) {
   const key = getAiKey();
   if (!key) throw new Error("NO_KEY");
   const provider = getAiProvider();
+  const model = getAiModel();
 
-  if (provider === "gemini") {
-    const model = getAiModel();
+  if (provider === "groq") {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "authorization": `Bearer ${key}`, "content-type": "application/json" },
+      body: JSON.stringify({ model, max_tokens: maxTokens, temperature: 0.8,
+        messages: [{ role: "user", content: prompt }] }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `Groq API error ${res.status}`);
+    }
+    const json = await res.json();
+    return json.choices?.[0]?.message?.content || "";
+
+  } else if (provider === "gemini") {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: maxTokens, temperature: 0.8 },
-        }),
-      }
+      { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: maxTokens, temperature: 0.8 } }) }
     );
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -1399,20 +1412,14 @@ async function callAI(prompt, maxTokens) {
     }
     const json = await res.json();
     return json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
   } else {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: {
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify({
-        model: getAiModel(),
-        max_tokens: maxTokens,
-        messages: [{ role: "user", content: prompt }],
-      }),
+      headers: { "x-api-key": key, "anthropic-version": "2023-06-01",
+        "content-type": "application/json", "anthropic-dangerous-direct-browser-access": "true" },
+      body: JSON.stringify({ model, max_tokens: maxTokens,
+        messages: [{ role: "user", content: prompt }] }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -3445,16 +3452,21 @@ function GuidelinesScreen() {
 /* ================= SETTINGS ================= */
 function AISettingsCard() {
   const toast = useToast();
-  const [provider, setProvider] = React.useState(() => localStorage.getItem("lamf_ai_provider") || "gemini");
+  const [provider, setProvider] = React.useState(() => localStorage.getItem("lamf_ai_provider") || "groq");
   const [key, setKey] = React.useState(() => localStorage.getItem("lamf_ai_key") || "");
-  const [model, setModel] = React.useState(() => localStorage.getItem("lamf_ai_model") || "gemini-2.0-flash");
+  const [model, setModel] = React.useState(() => {
+    const saved = localStorage.getItem("lamf_ai_model");
+    if (saved) return saved;
+    const p = localStorage.getItem("lamf_ai_provider") || "groq";
+    return p === "anthropic" ? "claude-sonnet-4-6" : p === "gemini" ? "gemini-2.0-flash" : "llama-3.3-70b-versatile";
+  });
   const [testing, setTesting] = React.useState(false);
   const [show, setShow] = React.useState(false);
 
   const switchProvider = (p) => {
     setProvider(p);
-    setKey(localStorage.getItem("lamf_ai_key") || "");
-    setModel(p === "anthropic" ? "claude-sonnet-4-6" : "gemini-2.0-flash");
+    setKey("");
+    setModel(p === "anthropic" ? "claude-sonnet-4-6" : p === "gemini" ? "gemini-2.0-flash" : "llama-3.3-70b-versatile");
   };
 
   const test = async () => {
@@ -3463,7 +3475,15 @@ function AISettingsCard() {
     setTesting(true);
     try {
       let ok = false;
-      if (provider === "gemini") {
+      if (provider === "groq") {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "authorization": `Bearer ${k}`, "content-type": "application/json" },
+          body: JSON.stringify({ model, max_tokens: 10, messages: [{ role: "user", content: "Say OK." }] }),
+        });
+        if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+        ok = true;
+      } else if (provider === "gemini") {
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${k}`,
           { method: "POST", headers: { "content-type": "application/json" },
@@ -3498,7 +3518,14 @@ function AISettingsCard() {
   };
 
   const saved = localStorage.getItem("lamf_ai_key");
+  const isGroq = provider === "groq";
   const isGemini = provider === "gemini";
+
+  const PROVIDERS = [
+    { id: "groq", label: "Groq", badge: "FREE ★", color: "#f55036", bg: "#fff3f0", badgeColor: "#c23a1e", badgeBg: "#ffe0da", sub: "500 free req/day · Llama 3.3 · No credit card" },
+    { id: "gemini", label: "Google Gemini", badge: "FREE", color: "#1a73e8", bg: "#e8f0fe", badgeColor: "#137333", badgeBg: "#e6f4ea", sub: "1,500 free req/day · Gemini 2.0" },
+    { id: "anthropic", label: "Anthropic Claude", badge: "PAID", color: "#7A52B5", bg: "#ede0fa", badgeColor: "#7A52B5", badgeBg: "#ede0fa", sub: "~₹0.01/generation · Deepest quality" },
+  ];
 
   return (
     <div className="card" style={{ padding: 18, border: "1px solid #d8c9f0", background: "linear-gradient(180deg,#faf8ff,#fff 70%)" }}>
@@ -3511,42 +3538,44 @@ function AISettingsCard() {
         {saved && <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 700, color: "var(--green)", background: "var(--green-bg)", borderRadius: 5, padding: "2px 8px", flexShrink: 0 }}>ACTIVE</span>}
       </div>
 
-      {/* Provider toggle */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        {[
-          { id: "gemini", label: "Google Gemini", badge: "FREE", color: "#1a73e8" },
-          { id: "anthropic", label: "Anthropic Claude", badge: "PAID", color: "#7A52B5" },
-        ].map(p => (
+        {PROVIDERS.map(p => (
           <button key={p.id} onClick={() => switchProvider(p.id)}
-            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${provider === p.id ? p.color : "var(--line)"}`, background: provider === p.id ? (p.id === "gemini" ? "#e8f0fe" : "#ede0fa") : "#fff", cursor: "pointer", textAlign: "left", transition: "all .15s" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ fontWeight: 700, fontSize: 13, color: provider === p.id ? p.color : "var(--ink)" }}>{p.label}</span>
-              <span style={{ fontSize: 9.5, fontWeight: 700, color: p.id === "gemini" ? "#137333" : "#7A52B5", background: p.id === "gemini" ? "#e6f4ea" : "#ede0fa", borderRadius: 4, padding: "1px 6px" }}>{p.badge}</span>
+            style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: `2px solid ${provider === p.id ? p.color : "var(--line)"}`, background: provider === p.id ? p.bg : "#fff", cursor: "pointer", textAlign: "left", transition: "all .15s" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <span style={{ fontWeight: 700, fontSize: 12.5, color: provider === p.id ? p.color : "var(--ink)" }}>{p.label}</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: p.badgeColor, background: p.badgeBg, borderRadius: 4, padding: "1px 5px" }}>{p.badge}</span>
             </div>
-            <div style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 2 }}>
-              {p.id === "gemini" ? "1,500 free requests/day · No credit card" : "Pay per use · ~₹0.01/generation"}
-            </div>
+            <div style={{ fontSize: 10.5, color: "var(--ink-faint)", marginTop: 2, lineHeight: 1.3 }}>{p.sub}</div>
           </button>
         ))}
       </div>
 
+      {isGroq && (
+        <div style={{ background: "#fff3f0", border: "1px solid #fcc", borderRadius: 8, padding: "10px 12px", marginBottom: 14, fontSize: 12, color: "#7a2020" }}>
+          <b>Get your free Groq key (1 min):</b><br />
+          1. Go to <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" style={{ color: "#f55036", fontWeight: 600 }}>console.groq.com/keys</a><br />
+          2. Sign up with Google/GitHub (no credit card needed)<br />
+          3. Click <b>Create API Key</b> → copy it → paste below
+        </div>
+      )}
       {isGemini && (
         <div style={{ background: "#e8f0fe", border: "1px solid #aecbfa", borderRadius: 8, padding: "10px 12px", marginBottom: 14, fontSize: 12, color: "#1a5296" }}>
-          <b>How to get your free Gemini key:</b><br />
+          <b>Get your free Gemini key:</b><br />
           1. Go to <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" style={{ color: "#1a73e8", fontWeight: 600 }}>aistudio.google.com/apikey</a><br />
-          2. Sign in with your Google account<br />
-          3. Click <b>Create API key</b> → copy it → paste below
+          2. Sign in with Google → <b>Create API key</b> → paste below<br />
+          <span style={{ color: "#c23a1e", fontWeight: 600 }}>Note: May show quota errors in some Indian accounts.</span>
         </div>
       )}
 
       <div style={{ display: "grid", gap: 12 }}>
         <div>
           <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--navy)", display: "block", marginBottom: 5 }}>
-            {isGemini ? "Google Gemini API Key" : "Anthropic API Key"}
+            {isGroq ? "Groq API Key" : isGemini ? "Google Gemini API Key" : "Anthropic API Key"}
           </label>
           <div style={{ position: "relative" }}>
             <input className="input" type={show ? "text" : "password"} value={key} onChange={e => setKey(e.target.value)}
-              placeholder={isGemini ? "AIza…" : "sk-ant-api03-…"}
+              placeholder={isGroq ? "gsk_…" : isGemini ? "AIza…" : "sk-ant-api03-…"}
               style={{ paddingRight: 38, fontFamily: "var(--mono)", fontSize: 12.5 }} />
             <button onClick={() => setShow(s => !s)} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--ink-faint)", cursor: "pointer", padding: 0, fontSize: 13 }}>{show ? "🙈" : "👁"}</button>
           </div>
@@ -3555,11 +3584,14 @@ function AISettingsCard() {
 
         <div>
           <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--navy)", display: "block", marginBottom: 5 }}>Model</label>
-          <select className="select" value={model} onChange={e => setModel(e.target.value)} style={{ maxWidth: 400 }}>
-            {isGemini ? <>
+          <select className="select" value={model} onChange={e => setModel(e.target.value)} style={{ maxWidth: 420 }}>
+            {isGroq ? <>
+              <option value="llama-3.3-70b-versatile">Llama 3.3 70B — Best quality, free (recommended)</option>
+              <option value="llama-3.1-8b-instant">Llama 3.1 8B — Fastest, also free</option>
+              <option value="gemma2-9b-it">Gemma 2 9B — Google model via Groq, free</option>
+            </> : isGemini ? <>
               <option value="gemini-2.0-flash">Gemini 2.0 Flash — Fast, smart, free (recommended)</option>
-              <option value="gemini-1.5-flash">Gemini 1.5 Flash — Slightly older, also free</option>
-              <option value="gemini-1.5-pro">Gemini 1.5 Pro — More capable, lower free quota</option>
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash — Also free</option>
             </> : <>
               <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — Fast &amp; smart (recommended)</option>
               <option value="claude-opus-4-8">Claude Opus 4.8 — Deepest thinking, slower</option>
@@ -3570,7 +3602,7 @@ function AISettingsCard() {
 
         <div style={{ display: "flex", gap: 9, marginTop: 2 }}>
           <button className="btn" onClick={test} disabled={testing}
-            style={{ background: isGemini ? "linear-gradient(150deg,#1a73e8,#4285f4)" : "linear-gradient(150deg,#7A52B5,#9b6fd4)", color: "#fff", border: "none", opacity: testing ? .7 : 1 }}>
+            style={{ background: isGroq ? "linear-gradient(150deg,#f55036,#e84a2e)" : isGemini ? "linear-gradient(150deg,#1a73e8,#4285f4)" : "linear-gradient(150deg,#7A52B5,#9b6fd4)", color: "#fff", border: "none", opacity: testing ? .7 : 1 }}>
             {testing ? <><span className="ai-spin" /> Testing…</> : <><Icon name="spark" size={15} /> Test connection</>}
           </button>
           <button className="btn btn-ghost" onClick={save}><Icon name="check" size={15} /> Save</button>
