@@ -3506,7 +3506,7 @@ function AISettingsCard() {
           ? "https://api.groq.com/openai/v1/chat/completions"
           : "https://openrouter.ai/api/v1/chat/completions";
         // Always use a fast model for connection test (DeepSeek R1 is too slow for ping)
-        const testModel = provider === "groq" ? "llama-3.1-8b-instant" : "meta-llama/llama-3.1-8b-instruct:free";
+        const testModel = provider === "groq" ? "llama-3.1-8b-instant" : "mistralai/mistral-7b-instruct:free";
         const headers = { "Authorization": `Bearer ${k}`, "Content-Type": "application/json", "X-Title": "LAMF Ad Content Tool" };
         if (provider === "openrouter") headers["HTTP-Referer"] = "https://master-ad-content-tool.onrender.com";
         const ctrl = new AbortController();
