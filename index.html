@@ -5298,8 +5298,8 @@ function LoginScreen({ store }) {
           <div><div style={{ fontWeight: 700, fontSize: 16 }}>SCCL Content Tool</div><div style={{ fontSize: 12, color: "var(--gold)", fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase" }}>Shriram Group</div></div>
         </div>
         <div>
-          <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1.2, letterSpacing: "-.02em", marginBottom: 14 }}>One workspace for every<br />Shriram company's content.</div>
-          <div style={{ fontSize: 14.5, color: "#aeb9cb", lineHeight: 1.6, maxWidth: 420 }}>Plan, write and review paid + organic + automation copy across SCCL, Shriram Financial Services, Fortune, Insights and Wealth — with compliance and tracking built in.</div>
+          <div className="login-tagline" style={{ fontSize: 30, fontWeight: 800, lineHeight: 1.2, letterSpacing: "-.02em", marginBottom: 14 }}>One workspace for every Shriram company's content.</div>
+          <div className="login-desc" style={{ fontSize: 14.5, color: "#aeb9cb", lineHeight: 1.6, maxWidth: 420 }}>Plan, write and review paid + organic + automation copy across SCCL, Shriram Financial Services, Fortune, Insights and Wealth — with compliance and tracking built in.</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {D.companies.filter(c => !c.group).map(c => (
@@ -5309,17 +5309,9 @@ function LoginScreen({ store }) {
           ))}
         </div>
       </div>
-      {/* right login form — on mobile this is the only panel */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px", background: "var(--navy-900)" }} className="login-right">
-        <form onSubmit={submit} className="card" style={{ width: 380, maxWidth: "100%", padding: 30, animation: shake ? "loginShake .5s ease" : "none" }}>
-          {/* mobile-only brand header — hidden on desktop */}
-          <div className="login-mobile-brand" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid var(--line)" }}>
-            <div style={{ width: 36, height: 36, borderRadius: 9, background: "linear-gradient(150deg, var(--gold), #b8973f)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "var(--navy-900)", fontSize: 17, flexShrink: 0 }}>S</div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>SCCL Content Tool</div>
-              <div style={{ fontSize: 11, color: "var(--ink-faint)", letterSpacing: ".04em", textTransform: "uppercase" }}>Shriram Group · Internal</div>
-            </div>
-          </div>
+      {/* right login form */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" }} className="login-right">
+        <form onSubmit={submit} className="card login-card" style={{ width: 380, maxWidth: "100%", padding: 30, animation: shake ? "loginShake .5s ease" : "none" }}>
           <div style={{ fontSize: 20, fontWeight: 700, color: "var(--navy)" }}>Sign in</div>
           <div style={{ fontSize: 13, color: "var(--ink-faint)", marginBottom: 22, marginTop: 2 }}>Authorised access only.</div>
           <label className="field-label">Username</label>
@@ -5339,13 +5331,15 @@ function LoginScreen({ store }) {
         </form>
       </div>
       <style>{`
-        .login-mobile-brand { display: none !important; }
-        .login-right { background: var(--bg) !important; }
+        .login-right { background: var(--bg); }
         @media(max-width:820px){
-          .login-wrap { grid-template-columns: 1fr !important; }
-          .login-brand { display: none !important; }
-          .login-right { background: var(--navy-900) !important; min-height: 100vh; padding: 32px 20px !important; }
-          .login-mobile-brand { display: flex !important; }
+          /* top-bottom split on mobile — same visual DNA as desktop left-right */
+          .login-wrap { grid-template-columns: 1fr !important; grid-template-rows: auto 1fr; min-height: 100vh; }
+          .login-brand { justify-content: flex-start !important; gap: 16px !important; padding: 28px 24px !important; }
+          .login-tagline { font-size: 20px !important; margin-bottom: 0 !important; }
+          .login-desc { display: none !important; }
+          .login-right { background: #fff !important; padding: 32px 20px 44px !important; align-items: flex-start !important; justify-content: flex-start !important; }
+          .login-card { width: 100% !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
         }
         @keyframes loginShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
       `}</style>
