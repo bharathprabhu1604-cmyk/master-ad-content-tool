@@ -4459,7 +4459,7 @@ function LoginScreen({ store }) {
   const submit = (e) => {
     e && e.preventDefault();
     const u = matchUser(email) || D.team[0];
-    if (!email.trim()) { setErr("Enter your work email to continue."); return; }
+    // Accept any non-empty email — fall back to Priya Nair for external/demo logins
     store.signIn(u.id);
   };
   return (
@@ -4494,9 +4494,9 @@ function LoginScreen({ store }) {
               Sign in with Google Workspace
             </button>
             {googleTip && (
-              <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, right: 0, background: "#111d35", color: "#fff", borderRadius: 8, padding: "10px 14px", fontSize: 12.5, zIndex: 10, display: "flex", alignItems: "center", gap: 8, boxShadow: "0 12px 32px rgba(20,35,63,.14)" }}>
+              <div style={{ position: "absolute", bottom: "calc(100% + 8px)", left: 0, right: 0, background: "#111d35", color: "#fff", borderRadius: 8, padding: "10px 14px", fontSize: 12.5, zIndex: 10, display: "flex", alignItems: "center", gap: 8, boxShadow: "0 12px 32px rgba(20,35,63,.14)" }}>
                 <span style={{ fontSize: 16 }}>🔒</span>
-                <span><b style={{ color: "#C8A951" }}>Coming soon</b> — Firebase / Google Workspace SSO is pending. Use email or a demo account below.</span>
+                <span><b style={{ color: "#C8A951" }}>Coming soon</b> — Firebase / Google Workspace SSO is pending. Use the email form or a demo account below.</span>
                 <button type="button" onClick={() => setGoogleTip(false)} style={{ marginLeft: "auto", background: "none", border: "none", color: "#aab4c4", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
               </div>
             )}
