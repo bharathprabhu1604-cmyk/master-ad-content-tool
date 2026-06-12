@@ -1379,6 +1379,7 @@ function fallbackGenerate(brief, ctx) {
   return {
     headlines: baseH.slice(0, hl).map(t => t.slice(0, 30)),
     descriptions: baseD.slice(0, d).map(t => t.slice(0, 90)),
+    _debug: { source: "fallback-template", reason: "called directly by fallbackGenerate()" },
     note: "Drafted offline from keywords + Copy Bank (AI service unavailable).",
   };
 }
@@ -1395,7 +1396,7 @@ function getAiModel() {
   return "deepseek/deepseek-chat-v3-0324:free"; // openrouter default — fast, no reasoning overhead
 }
 
-async function callAI(prompt, maxTokens, timeoutMs = 90000) {
+async function callAI(prompt, maxTokens, timeoutMs = 90000, onRaw) {
   const key = getAiKey();
   if (!key) throw new Error("NO_KEY");
   const provider = getAiProvider();
@@ -1425,6 +1426,7 @@ async function callAI(prompt, maxTokens, timeoutMs = 90000) {
         throw new Error(err.error?.message || `${provider} API error ${res.status}`);
       }
       const json = await res.json();
+      if (onRaw) onRaw(json);
       return json.choices?.[0]?.message?.content || "";
 
     } else if (provider === "gemini") {
@@ -1521,8 +1523,10 @@ Write ${hl} responsive-search HEADLINES (each MUST be ≤30 characters) and ${d}
 Every line must be distinct. No numbering. No prose.
 Return ONLY valid JSON: {"headlines":["..."],"descriptions":["..."]}`;
     if (onInspect) onInspect({ ...inspectorPayload, stage2Prompt, stratSummary });
-    const copyText = await callAI(stage2Prompt, 700);
+    let rawOpenRouterResponse = null;
+    const copyText = await callAI(stage2Prompt, 700, 90000, (raw) => { rawOpenRouterResponse = raw; });
 
+    const rawContent = copyText;
     let s = copyText.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
     const a = s.indexOf("{"), b = s.lastIndexOf("}");
     if (a >= 0 && b > a) s = s.slice(a, b + 1);
@@ -1530,16 +1534,36 @@ Return ONLY valid JSON: {"headlines":["..."],"descriptions":["..."]}`;
     const H = (j.headlines || []).map(x => String(x).trim()).filter(Boolean);
     const D2 = (j.descriptions || []).map(x => String(x).trim()).filter(Boolean);
     if (!H.length) throw new Error("empty response");
-    return { headlines: H, descriptions: D2 };
+    return {
+      headlines: H,
+      descriptions: D2,
+      _debug: {
+        source: "openrouter-ai",
+        model: getAiModel(),
+        rawOpenRouterResponse,
+        rawContent,
+        strippedJson: s,
+        parsedJson: j,
+        stage1RawText: strategyText,
+        stage1Parsed: stratSummary,
+      }
+    };
   } catch (e) {
-    if (e.message === "NO_KEY") return { ...fallbackGenerate(brief, ctx), note: "Add your API key in Settings to enable AI generation." };
+    if (e.message === "NO_KEY") {
+      const fb = fallbackGenerate(brief, ctx);
+      fb._debug = { source: "fallback-no-key", reason: "No API key configured" };
+      fb.note = "Add your API key in Settings to enable AI generation.";
+      return fb;
+    }
     const fb = fallbackGenerate(brief, ctx);
+    fb._debug = { source: "fallback-ai-error", reason: e.message };
     fb.note = `AI error: ${e.message}. Showing keyword draft instead.`;
     return fb;
   }
 }
 
 /* ---------- AI generator panel ---------- */
+const preStyle = { fontFamily: "var(--mono)", fontSize: 10, background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "6px 8px", maxHeight: 160, overflowY: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0 };
 function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true }) {
   const toast = useToast();
   const [open, setOpen] = useState(defaultOpen);
@@ -1674,41 +1698,127 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
               )}
             </div>
           )}
-          {inspector && (
+          {(inspector || res) && (
             <div style={{ marginTop: 14 }}>
               <button onClick={() => setInspectorOpen(o => !o)} style={{ background: "none", border: "1px solid #d0c8f8", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#5b3e86", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
-                <Icon name="spark" size={12} /> {inspectorOpen ? "Hide" : "Show"} Prompt Inspector
+                <Icon name="spark" size={12} /> {inspectorOpen ? "Hide" : "Show"} Debug Panel
               </button>
               {inspectorOpen && (
                 <div style={{ marginTop: 8, background: "#f8f7ff", border: "1px solid #d0c8f8", borderRadius: 8, padding: "10px 12px", fontSize: 11 }}>
-                  <div style={{ fontWeight: 700, color: "#2d1a7a", marginBottom: 8 }}>Prompt Inspector</div>
-                  <div style={{ display: "grid", gap: 10 }}>
-                    <div>
-                      <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Context Variables</div>
-                      <div style={{ background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 10, lineHeight: 1.8 }}>
-                        {Object.entries(inspector.contextVariables).map(([k, v]) => (
-                          <div key={k}><span style={{ color: "#9b7aff" }}>{k}:</span> {Array.isArray(v) ? v.join(", ") || "(empty)" : String(v)}</div>
-                        ))}
+                  <div style={{ fontWeight: 700, color: "#2d1a7a", marginBottom: 10, fontSize: 12 }}>Output Pipeline Debug</div>
+                  <div style={{ display: "grid", gap: 12 }}>
+
+                    {/* SOURCE */}
+                    {res?._debug && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-faint)" }}>SOURCE:</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
+                          background: res._debug.source === "openrouter-ai" ? "#e6f4ea" : "#fff8e1",
+                          color: res._debug.source === "openrouter-ai" ? "#1a5c2a" : "#7a5c00" }}>
+                          {res._debug.source === "openrouter-ai" ? `OpenRouter AI (${res._debug.model})` :
+                           res._debug.source === "fallback-no-key" ? "Fallback — No API Key" :
+                           res._debug.source === "fallback-ai-error" ? `Fallback — AI Error: ${res._debug.reason}` :
+                           "Keyword Template"}
+                        </span>
                       </div>
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Brand Line (injected into both stages)</div>
-                      <pre style={{ background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 10, whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0 }}>{inspector.brandLine}</pre>
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 1 Prompt (sent to {inspector.model})</div>
-                      <pre style={{ background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 10, whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0, maxHeight: 150, overflowY: "auto" }}>{inspector.stage1Prompt}</pre>
-                    </div>
-                    {inspector.stage2Prompt && <>
+                    )}
+
+                    {/* RAW OPENROUTER RESPONSE */}
+                    {res?._debug?.rawOpenRouterResponse && (
                       <div>
-                        <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 1 Strategy Output</div>
-                        <pre style={{ background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 10, whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0 }}>{inspector.stratSummary}</pre>
+                        <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>1. Raw OpenRouter Response (full JSON)</div>
+                        <pre style={preStyle}>{JSON.stringify(res._debug.rawOpenRouterResponse, null, 2)}</pre>
                       </div>
+                    )}
+
+                    {/* RAW CONTENT STRING */}
+                    {res?._debug?.rawContent && (
                       <div>
-                        <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 2 Prompt (sent to {inspector.model})</div>
-                        <pre style={{ background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 10, whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0, maxHeight: 180, overflowY: "auto" }}>{inspector.stage2Prompt}</pre>
+                        <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>2. Extracted content string (choices[0].message.content)</div>
+                        <pre style={preStyle}>{res._debug.rawContent}</pre>
                       </div>
-                    </>}
+                    )}
+
+                    {/* STRIPPED JSON */}
+                    {res?._debug?.strippedJson && (
+                      <div>
+                        <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>3. After stripping markdown fences + extracting &#123;…&#125;</div>
+                        <pre style={preStyle}>{res._debug.strippedJson}</pre>
+                      </div>
+                    )}
+
+                    {/* PARSED JSON */}
+                    {res?._debug?.parsedJson && (
+                      <div>
+                        <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>4. Parsed JSON object (stored in state as res)</div>
+                        <pre style={preStyle}>{JSON.stringify({ headlines: res.headlines, descriptions: res.descriptions }, null, 2)}</pre>
+                      </div>
+                    )}
+
+                    {/* RENDERED OUTPUT WITH SOURCE TAGS */}
+                    {res && (
+                      <div>
+                        <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 6 }}>5. Rendered UI content — with source tag per item</div>
+                        <div style={{ background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "6px 8px", fontSize: 10.5, lineHeight: 2 }}>
+                          <div style={{ fontWeight: 700, color: "var(--ink-faint)", fontSize: 10, marginBottom: 4 }}>HEADLINES ({(res.headlines || []).length})</div>
+                          {(res.headlines || []).map((t, i) => (
+                            <div key={i} style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                              <span style={{ fontFamily: "var(--mono)", color: "var(--navy)" }}>{t}</span>
+                              <span style={{ fontSize: 9.5, fontWeight: 700, padding: "1px 5px", borderRadius: 3, flexShrink: 0,
+                                background: res._debug?.source === "openrouter-ai" ? "#e6f4ea" : "#fff8e1",
+                                color: res._debug?.source === "openrouter-ai" ? "#1a5c2a" : "#7a5c00" }}>
+                                {res._debug?.source === "openrouter-ai" ? "OpenRouter AI" : "Template"}
+                              </span>
+                              {t.length === 30 && <span style={{ fontSize: 9, color: "var(--ink-faint)" }}>← truncated at 30</span>}
+                            </div>
+                          ))}
+                          <div style={{ fontWeight: 700, color: "var(--ink-faint)", fontSize: 10, marginBottom: 4, marginTop: 8 }}>DESCRIPTIONS ({(res.descriptions || []).length})</div>
+                          {(res.descriptions || []).map((t, i) => (
+                            <div key={i} style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+                              <span style={{ fontFamily: "var(--mono)", color: "var(--navy)", flex: 1 }}>{t}</span>
+                              <span style={{ fontSize: 9.5, fontWeight: 700, padding: "1px 5px", borderRadius: 3, flexShrink: 0,
+                                background: res._debug?.source === "openrouter-ai" ? "#e6f4ea" : "#fff8e1",
+                                color: res._debug?.source === "openrouter-ai" ? "#1a5c2a" : "#7a5c00" }}>
+                                {res._debug?.source === "openrouter-ai" ? "OpenRouter AI" : "Template"}
+                              </span>
+                              {t.length === 90 && <span style={{ fontSize: 9, color: "var(--ink-faint)" }}>← truncated at 90</span>}
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ fontSize: 10, color: "var(--ink-faint)", marginTop: 5 }}>
+                          Note: clicking + adds to ad via <code>t.slice(0,30)</code> / <code>t.slice(0,90)</code> — any headline already at 30 chars will be unchanged
+                        </div>
+                      </div>
+                    )}
+
+                    {/* PROMPT INSPECTOR */}
+                    {inspector?.stage1Prompt && (
+                      <details style={{ cursor: "pointer" }}>
+                        <summary style={{ fontWeight: 600, color: "#5b3e86", fontSize: 11, userSelect: "none" }}>Prompt Inspector (context + both stage prompts)</summary>
+                        <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+                          <div>
+                            <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Context variables</div>
+                            <div style={{ background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 10, lineHeight: 1.8 }}>
+                              {Object.entries(inspector.contextVariables || {}).map(([k, v]) => (
+                                <div key={k}><span style={{ color: "#9b7aff" }}>{k}:</span> {Array.isArray(v) ? v.join(", ") || "(empty)" : String(v)}</div>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 1 prompt</div>
+                            <pre style={preStyle}>{inspector.stage1Prompt}</pre>
+                          </div>
+                          {inspector.stratSummary && <div>
+                            <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 1 output (strategy)</div>
+                            <pre style={preStyle}>{inspector.stratSummary}</pre>
+                          </div>}
+                          {inspector.stage2Prompt && <div>
+                            <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 2 prompt</div>
+                            <pre style={preStyle}>{inspector.stage2Prompt}</pre>
+                          </div>}
+                        </div>
+                      </details>
+                    )}
                   </div>
                 </div>
               )}
