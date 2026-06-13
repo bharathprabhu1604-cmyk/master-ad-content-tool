@@ -1666,7 +1666,7 @@ Return ONLY valid JSON: {"headlines":["..."],"descriptions":["..."]}`;
     const rawContent = copyText;
     let s = copyText.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
     const a = s.indexOf("{"), b = s.lastIndexOf("}");
-    if (a >= 0 && b > a) s = s.slice(a, b + 1);
+    if (a >= 0) s = b > a ? s.slice(a, b + 1) : s.slice(a); // always extract from first {
     s = repairJson(s);
     const j = JSON.parse(s);
     const H = (j.headlines || []).map(x => String(x).trim()).filter(Boolean);
