@@ -1402,7 +1402,7 @@ const PRODUCT_TAXONOMY = {
 };
 
 function getProductTaxonomy(co, camp) {
-  const text = ((camp?.theme || "") + " " + (camp?.name || "")).toLowerCase();
+  const text = ((camp?.theme || "") + " " + (camp?.name || "") + " " + (camp?.keywords || []).join(" ")).toLowerCase();
   const id = co?.id;
   if (id === "sccl") {
     if (text.includes("gold")) return PRODUCT_TAXONOMY.sccl_gold_loan;
@@ -1443,47 +1443,51 @@ function parseBriefCounts(brief) {
 /* ---------- offline fallback: build from keywords + copy bank ---------- */
 function fallbackGenerate(brief, ctx) {
   const { hl, d } = parseBriefCounts(brief);
-  const C = window.LAMF_DATA.copyBank;
   const kw = (ctx.keywords || []).filter(Boolean);
-  const cap = s => s.replace(/\b\w/g, m => m.toUpperCase());
-  const regulator = ctx.regulator || "";
+  const cap = s => s ? s.replace(/\b\w/g, m => m.toUpperCase()) : "";
+  const reg = (ctx.regulator || "").split("·")[0].trim();
+  // Pre-slice keywords so template strings never exceed character limits
+  const k0 = cap(kw[0] || "").slice(0, 24);
+  const k1 = cap(kw[1] || "").slice(0, 14); // "Smarter? " = 9 chars prefix
+  const k2 = cap(kw[2] || "").slice(0, 24);
+  const brand = (ctx.short || "Shriram").slice(0, 14);
   const baseH = ctx.rate ? [
-    kw[0] ? cap(kw[0]) + "?" : `${ctx.theme || "Apply"} Today`,
-    `${ctx.short || "Shriram"} @ ${ctx.rate}`,
-    kw[1] ? "Smarter Than " + cap(kw[1]) : "Stay Invested. Get Funds.",
+    k0 ? k0 + "?" : "Apply Today",
+    `${brand} @ ${ctx.rate}`.slice(0, 30),
+    k1 ? ("Smarter? " + k1).slice(0, 30) : "Stay Invested. Get Funds.",
     "100% Digital Process",
-    regulator.split("·")[0].trim() || "Shriram",
-    "40+ Years Of Trusted Legacy",
-    kw[2] ? cap(kw[2]) : "Apply Now. Get Funds Fast.",
-    "Check Eligibility In Minutes",
-    "No Asset Loss. Just Liquidity.",
+    reg.slice(0, 28) || "Shriram",
+    "40+ Years Of Legacy",
+    "Apply Now — Get Funds",
+    "Check Eligibility Today",
+    "No Asset Loss. Get Cash.",
     "Get Cash. Stay Invested.",
   ] : [
-    kw[0] ? cap(kw[0]) + "?" : `${ctx.theme || ctx.name} Today`,
-    kw[1] ? cap(kw[1]) : `${ctx.short || "Shriram"} — Trusted`,
+    k0 ? k0 + "?" : `${(ctx.theme || ctx.short || "").slice(0,27)}?`,
+    k1 ? k1.slice(0, 30) : `${brand} — Trusted`.slice(0, 30),
     "100% Digital Process",
-    regulator ? regulator.split("·")[0].trim() : "Regulated & Trusted",
+    reg.slice(0, 28) || "Regulated & Trusted",
     "40+ Years Of Legacy",
-    kw[2] ? cap(kw[2]) : "Apply Now",
+    k2 ? k2.slice(0, 30) : "Apply Now",
     "Check Eligibility Today",
-    `${ctx.short || "Shriram"} — Reliable`,
+    `${brand} — Reliable`.slice(0, 30),
     "Expert Guidance",
     "Get Started Today",
   ];
   const baseD = ctx.rate ? [
-    `Skip the high-rate loan — pledge your assets & get funds at ${ctx.rate}. ${cap(kw[0] || "Apply")} now, stay invested.`,
-    `100% digital. Fast approval. Apply in minutes & unlock your credit line. No branch visits, no delays.`,
-    `${ctx.name || "Shriram"} — ${regulator || "Regulated"} with 40+ years of legacy. Check eligibility today.`,
-    `MF units lien-marked, not sold. Your portfolio keeps growing while you access the cash you need.`,
+    `Pledge MF units. Get funds at ${ctx.rate}. Stay invested & grow your wealth.`.slice(0, 90),
+    `100% digital. Fast approval. Apply in minutes. No branch visits needed.`,
+    `${brand} — ${reg || "Regulated"}. 40+ years of trusted legacy. Check eligibility.`.slice(0, 90),
+    `MF units lien-marked, not sold. Portfolio grows while you access funds.`,
   ] : [
-    `${ctx.name || "Shriram"} — ${regulator || "Regulated"}. ${cap(kw[0] || ctx.theme || "Apply")} today with expert guidance.`,
-    `100% digital process. Fast approval. Apply in minutes. No branch visits, no delays.`,
-    `${cap(kw[0] || ctx.theme || ctx.name)} — trusted by thousands. ${regulator || "Regulated & reliable"}.`,
-    `${ctx.name || "Shriram"} — 40+ years of trusted financial services. Check eligibility today.`,
+    `${(ctx.name || brand).slice(0, 22)} — ${reg || "Regulated"}. ${k0 || ctx.theme || "Apply"} today.`.slice(0, 90),
+    `100% digital. Fast approval. Apply in minutes. No branch visits needed.`,
+    `Trusted by thousands. ${reg || "Regulated & reliable"}. Check eligibility today.`.slice(0, 90),
+    `${brand} — 40+ years of financial expertise. Check eligibility today.`.slice(0, 90),
   ];
   return {
-    headlines: baseH.slice(0, hl).map(t => t.slice(0, 30)),
-    descriptions: baseD.slice(0, d).map(t => t.slice(0, 90)),
+    headlines: baseH.slice(0, hl).map(t => t.trim()),
+    descriptions: baseD.slice(0, d).map(t => t.trim()),
     _debug: { source: "fallback-template", reason: "called directly by fallbackGenerate()" },
     note: "Drafted offline from keywords + Copy Bank (AI service unavailable).",
   };
@@ -1572,6 +1576,25 @@ async function callAI(prompt, maxTokens, timeoutMs = 90000, onRaw) {
   }
 }
 
+function repairJson(s) {
+  try { JSON.parse(s); return s; } catch (_) {}
+  let r = s.trimEnd().replace(/,\s*$/, "");
+  const inStr = (r.match(/(?<!\\)"/g) || []).length % 2 !== 0;
+  if (inStr) r += '"';
+  let braces = 0, brackets = 0, inString = false;
+  for (let i = 0; i < r.length; i++) {
+    const c = r[i];
+    if (c === '"' && (i === 0 || r[i-1] !== '\\')) inString = !inString;
+    if (!inString) {
+      if (c === '{') braces++; else if (c === '}') braces--;
+      else if (c === '[') brackets++; else if (c === ']') brackets--;
+    }
+  }
+  while (brackets-- > 0) r += ']';
+  while (braces-- > 0) r += '}';
+  try { JSON.parse(r); return r; } catch (_) { return s; }
+}
+
 async function aiGenerate(brief, ctx, onStage, onInspect) {
   const key = getAiKey();
   if (!key) return { ...fallbackGenerate(brief, ctx), note: "Add your API key in Settings to enable AI generation." };
@@ -1638,12 +1661,13 @@ Every line must be distinct. No numbering. No prose.
 Return ONLY valid JSON: {"headlines":["..."],"descriptions":["..."]}`;
     if (onInspect) onInspect({ ...inspectorPayload, stage2Prompt, stratSummary });
     let rawOpenRouterResponse = null;
-    const copyText = await callAI(stage2Prompt, 700, 90000, (raw) => { rawOpenRouterResponse = raw; });
+    const copyText = await callAI(stage2Prompt, 1200, 90000, (raw) => { rawOpenRouterResponse = raw; });
 
     const rawContent = copyText;
     let s = copyText.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
     const a = s.indexOf("{"), b = s.lastIndexOf("}");
     if (a >= 0 && b > a) s = s.slice(a, b + 1);
+    s = repairJson(s);
     const j = JSON.parse(s);
     const H = (j.headlines || []).map(x => String(x).trim()).filter(Boolean);
     const D2 = (j.descriptions || []).map(x => String(x).trim()).filter(Boolean);
