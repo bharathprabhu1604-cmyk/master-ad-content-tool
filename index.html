@@ -1597,7 +1597,7 @@ function repairJson(s) {
 
 async function aiGenerate(brief, ctx, onStage, onInspect) {
   const key = getAiKey();
-  if (!key) return { ...fallbackGenerate(brief, ctx), note: "Add your API key in Settings to enable AI generation." };
+  if (!key) return { ...fallbackGenerate(brief, ctx), note: "Add your API key in Settings to enable AI generation.", _debug: { source: "fallback-no-key" } };
 
   const { hl, d } = parseBriefCounts(brief);
   const rateClause = ctx.rate ? `Rate: ${ctx.rate}.` : "";
@@ -1638,6 +1638,20 @@ Respond with JSON only.`;
   };
   if (onInspect) onInspect({ ...inspectorPayload });
 
+  // forensic capture — declared outside try so catch can access them
+  let _forensic = {
+    rawApiJson: null,
+    rawContent: "",
+    finishReason: null,
+    hadFences: false,
+    wasTruncated: false,
+    jsonCandidate: "",
+    repairedJson: "",
+    parseError: null,
+    stage2Prompt: null,
+    stratSummary: null,
+  };
+
   try {
     // Stage 1 — think as a performance marketer
     if (onStage) onStage(1, "Thinking as a performance marketer…");
@@ -1645,9 +1659,10 @@ Respond with JSON only.`;
 
     let stratSummary = "";
     try {
-      const s = JSON.parse(strategyText.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim());
-      stratSummary = `Hooks: ${(s.hooks || []).join("; ")}. Tone: ${s.tone || ""}. Avoid: ${s.avoid || ""}.`;
+      const s1 = JSON.parse(strategyText.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim());
+      stratSummary = `Hooks: ${(s1.hooks || []).join("; ")}. Tone: ${s1.tone || ""}. Avoid: ${s1.avoid || ""}.`;
     } catch (_) { stratSummary = strategyText.slice(0, 300); }
+    _forensic.stratSummary = stratSummary;
 
     // Stage 2 — write the copy
     if (onStage) onStage(2, "Writing headlines & descriptions…");
@@ -1659,16 +1674,33 @@ ${guardrailsBlock ? "\n" + guardrailsBlock + "\n" : ""}
 Write ${hl} responsive-search HEADLINES (each MUST be ≤30 characters) and ${d} DESCRIPTIONS (each MUST be ≤90 characters).
 Every line must be distinct. No numbering. No prose.
 Return ONLY valid JSON: {"headlines":["..."],"descriptions":["..."]}`;
+    _forensic.stage2Prompt = stage2Prompt;
     if (onInspect) onInspect({ ...inspectorPayload, stage2Prompt, stratSummary });
-    let rawOpenRouterResponse = null;
-    const copyText = await callAI(stage2Prompt, 1200, 90000, (raw) => { rawOpenRouterResponse = raw; });
 
-    const rawContent = copyText;
+    const copyText = await callAI(stage2Prompt, 1200, 90000, (raw) => {
+      _forensic.rawApiJson = raw;
+      _forensic.finishReason = raw?.choices?.[0]?.finish_reason ?? null;
+      _forensic.wasTruncated = _forensic.finishReason === "length" || _forensic.finishReason === "max_tokens";
+    });
+
+    _forensic.rawContent = copyText;
+    _forensic.hadFences = /^```/m.test(copyText);
+
     let s = copyText.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
     const a = s.indexOf("{"), b = s.lastIndexOf("}");
-    if (a >= 0) s = b > a ? s.slice(a, b + 1) : s.slice(a); // always extract from first {
-    s = repairJson(s);
-    const j = JSON.parse(s);
+    if (a >= 0) s = b > a ? s.slice(a, b + 1) : s.slice(a);
+    _forensic.jsonCandidate = s;
+    const repaired = repairJson(s);
+    _forensic.repairedJson = repaired;
+
+    let j;
+    try {
+      j = JSON.parse(repaired);
+    } catch (parseErr) {
+      _forensic.parseError = { message: parseErr.message, name: parseErr.name };
+      throw parseErr;
+    }
+
     const H = (j.headlines || []).map(x => String(x).trim()).filter(Boolean);
     const D2 = (j.descriptions || []).map(x => String(x).trim()).filter(Boolean);
     if (!H.length) throw new Error("empty response");
@@ -1678,9 +1710,9 @@ Return ONLY valid JSON: {"headlines":["..."],"descriptions":["..."]}`;
       _debug: {
         source: "openrouter-ai",
         model: getAiModel(),
-        rawOpenRouterResponse,
-        rawContent,
-        strippedJson: s,
+        rawOpenRouterResponse: _forensic.rawApiJson,
+        rawContent: _forensic.rawContent,
+        strippedJson: repaired,
         parsedJson: j,
         stage1RawText: strategyText,
         stage1Parsed: stratSummary,
@@ -1694,7 +1726,11 @@ Return ONLY valid JSON: {"headlines":["..."],"descriptions":["..."]}`;
       return fb;
     }
     const fb = fallbackGenerate(brief, ctx);
-    fb._debug = { source: "fallback-ai-error", reason: e.message };
+    fb._debug = {
+      source: "fallback-ai-error",
+      reason: e.message,
+      forensic: _forensic,
+    };
     fb.note = `AI error: ${e.message}. Showing keyword draft instead.`;
     return fb;
   }
@@ -1900,8 +1936,81 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
                       </div>
                     )}
 
-                    {/* RAW OPENROUTER RESPONSE */}
-                    {res?._debug?.rawOpenRouterResponse && (
+                    {/* ── FORENSICS (failure only) ── */}
+                    {res?._debug?.source === "fallback-ai-error" && res._debug.forensic && (() => {
+                      const f = res._debug.forensic;
+                      const rowStyle = { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 11 };
+                      const chipStyle = (ok) => ({ fontWeight: 700, padding: "1px 7px", borderRadius: 4, fontSize: 10.5,
+                        background: ok ? "#e6f4ea" : "#fde8e8", color: ok ? "#1a5c2a" : "#7a1c1c" });
+                      return (
+                        <div style={{ display: "grid", gap: 10 }}>
+                          <div style={{ fontWeight: 700, color: "#7a1c1c", fontSize: 11.5, borderBottom: "1px solid #f5c6c6", paddingBottom: 6 }}>
+                            Forensic Trace — AI Failure
+                          </div>
+
+                          {/* flags row */}
+                          <div style={rowStyle}>
+                            <span style={{ color: "var(--ink-faint)", fontWeight: 600 }}>finish_reason:</span>
+                            <span style={chipStyle(!f.wasTruncated)}>{f.finishReason || "(not set)"}</span>
+                            <span style={chipStyle(!f.wasTruncated)}>{f.wasTruncated ? "TRUNCATED BY TOKEN LIMIT" : "not truncated"}</span>
+                            <span style={{ color: "var(--ink-faint)", fontWeight: 600, marginLeft: 8 }}>markdown fences:</span>
+                            <span style={chipStyle(!f.hadFences)}>{f.hadFences ? "YES — fences present" : "none"}</span>
+                          </div>
+
+                          {/* raw API JSON */}
+                          <div>
+                            <div style={{ fontWeight: 600, color: "#7a1c1c", marginBottom: 3 }}>RAW AI RESPONSE — full OpenRouter API JSON</div>
+                            <pre style={{ ...preStyle, border: "1px solid #f5c6c6", background: "#fff8f8", maxHeight: 200 }}>
+                              {f.rawApiJson ? JSON.stringify(f.rawApiJson, null, 2) : "(callAI did not fire — error before API call)"}
+                            </pre>
+                          </div>
+
+                          {/* extracted content */}
+                          <div>
+                            <div style={{ fontWeight: 600, color: "#7a1c1c", marginBottom: 3 }}>EXTRACTED CONTENT — choices[0].message.content</div>
+                            <pre style={{ ...preStyle, border: "1px solid #f5c6c6", background: "#fff8f8" }}>
+                              {f.rawContent || "(empty — API returned no content)"}
+                            </pre>
+                          </div>
+
+                          {/* json candidate */}
+                          <div>
+                            <div style={{ fontWeight: 600, color: "#7a1c1c", marginBottom: 3 }}>JSON CANDIDATE — string passed to JSON.parse()</div>
+                            <pre style={{ ...preStyle, border: "1px solid #f5c6c6", background: "#fff8f8" }}>
+                              {f.jsonCandidate || "(empty — no &#123; found in content)"}
+                            </pre>
+                            {f.repairedJson && f.repairedJson !== f.jsonCandidate && (
+                              <div style={{ marginTop: 4 }}>
+                                <div style={{ fontWeight: 600, color: "#7a5c00", marginBottom: 2, fontSize: 10.5 }}>After repairJson():</div>
+                                <pre style={{ ...preStyle, border: "1px solid #f5e6c6", background: "#fffdf0" }}>{f.repairedJson}</pre>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* parse error */}
+                          <div>
+                            <div style={{ fontWeight: 600, color: "#7a1c1c", marginBottom: 3 }}>PARSE RESULT</div>
+                            {f.parseError
+                              ? <div style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "#7a1c1c", background: "#fde8e8", border: "1px solid #f5c6c6", borderRadius: 4, padding: "6px 8px" }}>
+                                  {f.parseError.name}: {f.parseError.message}
+                                </div>
+                              : <div style={{ ...chipStyle(false), display: "inline-block" }}>Error thrown before JSON.parse was reached</div>
+                            }
+                          </div>
+
+                          {/* stage 2 prompt */}
+                          {f.stage2Prompt && (
+                            <details>
+                              <summary style={{ fontWeight: 600, color: "#7a5c00", fontSize: 10.5, cursor: "pointer", userSelect: "none" }}>Stage 2 prompt sent to model (expand)</summary>
+                              <pre style={{ ...preStyle, marginTop: 4, maxHeight: 220 }}>{f.stage2Prompt}</pre>
+                            </details>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* RAW OPENROUTER RESPONSE (success path) */}
+                    {res?._debug?.rawOpenRouterResponse && res._debug.source === "openrouter-ai" && (
                       <div>
                         <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>1. Raw OpenRouter Response (full JSON)</div>
                         <pre style={preStyle}>{JSON.stringify(res._debug.rawOpenRouterResponse, null, 2)}</pre>
@@ -1909,7 +2018,7 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
                     )}
 
                     {/* RAW CONTENT STRING */}
-                    {res?._debug?.rawContent && (
+                    {res?._debug?.rawContent && res._debug.source === "openrouter-ai" && (
                       <div>
                         <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>2. Extracted content string (choices[0].message.content)</div>
                         <pre style={preStyle}>{res._debug.rawContent}</pre>
@@ -1917,7 +2026,7 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
                     )}
 
                     {/* STRIPPED JSON */}
-                    {res?._debug?.strippedJson && (
+                    {res?._debug?.strippedJson && res._debug.source === "openrouter-ai" && (
                       <div>
                         <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>3. After stripping markdown fences + extracting &#123;…&#125;</div>
                         <pre style={preStyle}>{res._debug.strippedJson}</pre>
