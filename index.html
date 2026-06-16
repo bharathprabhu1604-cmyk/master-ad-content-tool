@@ -1603,6 +1603,35 @@ function repairJson(s) {
   try { JSON.parse(r); return r; } catch (_) { return s; }
 }
 
+// Robust plain-text extraction — used when the model doesn't return valid JSON.
+// Each list item is an independent line, so even a response truncated mid-list
+// still yields all the complete lines written before the cutoff.
+function extractListSection(text, headerPattern, stopPatterns) {
+  const re = new RegExp(headerPattern, "i");
+  const m = re.exec(text);
+  if (!m) return [];
+  let chunk = text.slice(m.index + m[0].length);
+  if (stopPatterns && stopPatterns.length) {
+    const stopRe = new RegExp(stopPatterns.join("|"), "i");
+    const sm = stopRe.exec(chunk);
+    if (sm) chunk = chunk.slice(0, sm.index);
+  }
+  return chunk.split("\n")
+    .map(l => l.replace(/^\s*(?:[-*•]|\d+[\.\)])\s*/, "").replace(/^["'“]+|["'”]+$/g, "").trim())
+    .filter(Boolean);
+}
+function extractPlainText(text) {
+  return {
+    headlines: extractListSection(text, "headlines\\s*:?", ["descriptions\\s*:?"]),
+    descriptions: extractListSection(text, "descriptions\\s*:?", []),
+  };
+}
+
+// Token budgets to try, in order. If a response is truncated (finish_reason
+// "length") AND we couldn't extract usable content, retry with the next
+// larger budget instead of immediately falling back to templates.
+const GENERATION_TOKEN_BUDGETS = [900, 1800, 3200];
+
 async function aiGenerate(brief, ctx, onStage, onInspect) {
   const key = getAiKey();
   if (!key) return { ...fallbackGenerate(brief, ctx), note: "Add your API key in Settings to enable AI generation.", _debug: { source: "fallback-no-key" } };
@@ -1612,17 +1641,27 @@ async function aiGenerate(brief, ctx, onStage, onInspect) {
   const brandLine = `Product: ${ctx.name} (${ctx.short}). Channel: ${ctx.channel || "Google Search RSA"}. ${rateClause} Regulator: ${ctx.regulator || ""}. Keywords: ${(ctx.keywords || []).join(", ") || "—"}. Theme: ${ctx.theme || ctx.name}.`;
 
   const taxonomy = ctx.taxonomy || null;
+  // single-line, injected once (not duplicated across stages)
   const guardrailsBlock = taxonomy
-    ? `PRODUCT GUARDRAILS — ${taxonomy.label}:\n- Write ONLY about: ${taxonomy.allowed.join(", ")}\n- NEVER mention (strictly forbidden): ${taxonomy.forbidden.join(", ")}\n- Compliance: ${taxonomy.compliance}`
+    ? `PRODUCT GUARDRAILS — ${taxonomy.label}: write ONLY about ${taxonomy.allowed.join(", ")}. NEVER mention: ${taxonomy.forbidden.join(", ")}. Compliance: ${taxonomy.compliance}`
     : "";
 
-  const stage1Prompt = `You are an expert performance marketing strategist for Indian financial services.
+  // Single merged prompt — no separate "strategy" call, no duplicated brand/guardrail
+  // context across two requests. Plain-text output (not strict JSON) so a response
+  // is still usable even if truncated mid-list.
+  const prompt = `You are a senior performance-marketing copywriter for ${ctx.name} (${ctx.short}), a regulated Indian financial services company.
 ${brandLine}
+${ctx.rate ? `Always include the rate "${ctx.rate}" with the asterisk.` : "Do NOT mention any loan/interest rate — this product has none."} Never name competitors. No superlatives (best/lowest/cheapest). Tone: trustworthy, benefit-led, human. Lead with the single strongest benefit for this audience.
+${guardrailsBlock}
 Brief: "${brief}"
-${guardrailsBlock ? "\n" + guardrailsBlock + "\n" : ""}
-Think deeply: What emotional hooks resonate with this audience? What unique angles make this product stand out? What compliance guardrails apply (${ctx.regulator || "regulated financial services"} framing, no competitor names, no superlatives like best/lowest)?
-Return a tight JSON strategy: {"hooks":["hook1","hook2","hook3"],"tone":"...","avoid":"..."}
-Respond with JSON only.`;
+Write exactly ${hl} HEADLINES (each ≤30 characters) and ${d} DESCRIPTIONS (each ≤90 characters). Every line distinct, no prose, no extra commentary.
+Output ONLY in this exact plain-text format:
+HEADLINES:
+1. <headline>
+2. <headline>
+DESCRIPTIONS:
+1. <description>
+2. <description>`;
 
   const inspectorPayload = {
     provider: getAiProvider(),
@@ -1641,107 +1680,90 @@ Respond with JSON only.`;
     },
     brandLine,
     guardrailsBlock,
-    stage1Prompt,
-    stage2Prompt: null,
+    prompt,
   };
   if (onInspect) onInspect({ ...inspectorPayload });
 
-  // forensic capture — declared outside try so catch can access them
-  let _forensic = {
-    rawApiJson: null,
-    rawContent: "",
-    finishReason: null,
-    hadFences: false,
-    wasTruncated: false,
-    jsonCandidate: "",
-    repairedJson: "",
-    parseError: null,
-    stage2Prompt: null,
-    stratSummary: null,
-  };
+  const attempts = [];
 
-  try {
-    // Stage 1 — think as a performance marketer
-    if (onStage) onStage(1, "Thinking as a performance marketer…");
-    const strategyText = await callAI(stage1Prompt, 350);
+  for (let i = 0; i < GENERATION_TOKEN_BUDGETS.length; i++) {
+    const budget = GENERATION_TOKEN_BUDGETS[i];
+    if (onStage) onStage(i + 1, i === 0 ? "Writing headlines & descriptions…" : `Truncated — retrying with a larger token budget (${budget})…`);
 
-    let stratSummary = "";
+    let rawApiJson = null, text = "";
     try {
-      const s1 = JSON.parse(strategyText.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim());
-      stratSummary = `Hooks: ${(s1.hooks || []).join("; ")}. Tone: ${s1.tone || ""}. Avoid: ${s1.avoid || ""}.`;
-    } catch (_) { stratSummary = strategyText.slice(0, 300); }
-    _forensic.stratSummary = stratSummary;
-
-    // Stage 2 — write the copy
-    if (onStage) onStage(2, "Writing headlines & descriptions…");
-    const stage2Prompt = `You are a senior performance-marketing copywriter for ${ctx.name}, a regulated Indian financial services company.
-Strategy: ${stratSummary}
-${brandLine}
-Brand rules: always write "${ctx.short}" correctly; ${ctx.rate ? `always include rate "${ctx.rate}" with the asterisk;` : "do NOT mention any loan rates or interest rates — this product has none;"} regulatory framing: "${ctx.regulator || ""}"; never name competitors; no superlatives (best/lowest/cheapest); tone = trustworthy, benefit-led, human.
-${guardrailsBlock ? "\n" + guardrailsBlock + "\n" : ""}
-Write ${hl} responsive-search HEADLINES (each MUST be ≤30 characters) and ${d} DESCRIPTIONS (each MUST be ≤90 characters).
-Every line must be distinct. No numbering. No prose.
-Return ONLY valid JSON: {"headlines":["..."],"descriptions":["..."]}`;
-    _forensic.stage2Prompt = stage2Prompt;
-    if (onInspect) onInspect({ ...inspectorPayload, stage2Prompt, stratSummary });
-
-    const copyText = await callAI(stage2Prompt, 1200, 90000, (raw) => {
-      _forensic.rawApiJson = raw;
-      _forensic.finishReason = raw?.choices?.[0]?.finish_reason ?? null;
-      _forensic.wasTruncated = _forensic.finishReason === "length" || _forensic.finishReason === "max_tokens";
-    });
-
-    _forensic.rawContent = copyText;
-    _forensic.hadFences = /^```/m.test(copyText);
-
-    let s = copyText.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-    const a = s.indexOf("{"), b = s.lastIndexOf("}");
-    if (a >= 0) s = b > a ? s.slice(a, b + 1) : s.slice(a);
-    _forensic.jsonCandidate = s;
-    const repaired = repairJson(s);
-    _forensic.repairedJson = repaired;
-
-    let j;
-    try {
-      j = JSON.parse(repaired);
-    } catch (parseErr) {
-      _forensic.parseError = { message: parseErr.message, name: parseErr.name };
-      throw parseErr;
-    }
-
-    const H = (j.headlines || []).map(x => String(x).trim()).filter(Boolean);
-    const D2 = (j.descriptions || []).map(x => String(x).trim()).filter(Boolean);
-    if (!H.length) throw new Error("empty response");
-    return {
-      headlines: H,
-      descriptions: D2,
-      _debug: {
-        source: "openrouter-ai",
-        model: getAiModel(),
-        rawOpenRouterResponse: _forensic.rawApiJson,
-        rawContent: _forensic.rawContent,
-        strippedJson: repaired,
-        parsedJson: j,
-        stage1RawText: strategyText,
-        stage1Parsed: stratSummary,
+      text = await callAI(prompt, budget, 90000, (raw) => { rawApiJson = raw; });
+    } catch (e) {
+      if (e.message === "NO_KEY") {
+        const fb = fallbackGenerate(brief, ctx);
+        fb._debug = { source: "fallback-no-key", reason: "No API key configured" };
+        fb.note = "Add your API key in Settings to enable AI generation.";
+        return fb;
       }
-    };
-  } catch (e) {
-    if (e.message === "NO_KEY") {
+      attempts.push({ budget, error: e.message });
       const fb = fallbackGenerate(brief, ctx);
-      fb._debug = { source: "fallback-no-key", reason: "No API key configured" };
-      fb.note = "Add your API key in Settings to enable AI generation.";
-      return fb;
+      fb._debug = { source: "fallback-ai-error", reason: e.message, attempts, prompt };
+      fb.note = `AI error: ${e.message}. Showing keyword draft instead.`;
+      return fb; // network/auth errors won't be fixed by a bigger token budget
     }
-    const fb = fallbackGenerate(brief, ctx);
-    fb._debug = {
-      source: "fallback-ai-error",
-      reason: e.message,
-      forensic: _forensic,
-    };
-    fb.note = `AI error: ${e.message}. Showing keyword draft instead.`;
-    return fb;
+
+    const usage = rawApiJson?.usage || null;
+    const finishReason = rawApiJson?.choices?.[0]?.finish_reason ?? null;
+    const truncated = finishReason === "length";
+
+    // 1) try strict JSON first (some models wrap output in JSON despite instructions)
+    let H = [], D2 = [], parsedVia = null, parseError = null, jsonCandidate = "";
+    let s = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+    const a = s.indexOf("{"), b = s.lastIndexOf("}");
+    if (a >= 0) {
+      jsonCandidate = b > a ? s.slice(a, b + 1) : s.slice(a);
+      const repaired = repairJson(jsonCandidate);
+      try {
+        const j = JSON.parse(repaired);
+        const hh = (j.headlines || []).map(x => String(x).trim()).filter(Boolean);
+        const dd = (j.descriptions || []).map(x => String(x).trim()).filter(Boolean);
+        if (hh.length) { H = hh; D2 = dd; parsedVia = "json"; }
+      } catch (e) { parseError = e.message; }
+    }
+    // 2) fall back to robust plain-text extraction — JSON is no longer required
+    if (!H.length) {
+      const ext = extractPlainText(text);
+      if (ext.headlines.length) { H = ext.headlines; D2 = ext.descriptions; parsedVia = "plain-text"; }
+    }
+
+    attempts.push({ budget, finishReason, truncated, usage, rawApiJson, rawContent: text, jsonCandidate, parsedVia, parseError, headlinesFound: H.length, descriptionsFound: D2.length });
+
+    if (H.length) {
+      return {
+        headlines: H,
+        descriptions: D2,
+        _debug: {
+          source: "openrouter-ai",
+          model: getAiModel(),
+          rawOpenRouterResponse: rawApiJson,
+          rawContent: text,
+          parsedVia,
+          usage,
+          finishReason,
+          attempts,
+          prompt,
+        }
+      };
+    }
+
+    // No usable content. Only worth retrying with a bigger budget if we were
+    // actually cut off by the token limit — otherwise a bigger budget won't help.
+    if (!truncated) break;
   }
+
+  const last = attempts[attempts.length - 1] || {};
+  const reason = last.truncated
+    ? `Model kept truncating output even at ${last.budget} tokens`
+    : (last.error || "Model produced no usable headlines/descriptions");
+  const fb = fallbackGenerate(brief, ctx);
+  fb._debug = { source: "fallback-ai-error", reason, attempts, prompt };
+  fb.note = `AI error: ${reason}. Showing keyword draft instead.`;
+  return fb;
 }
 
 /* ---------- AI generator panel ---------- */
@@ -1865,17 +1887,9 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
               style={{ background: "linear-gradient(150deg,#7A52B5,#9b6fd4)", color: "#fff", border: "none", opacity: busy ? .7 : 1 }}>
               {busy ? <><span className="ai-spin" /> {stage ? stage.label : "Starting…"}</> : <><Icon name="spark" size={15} /> Generate content</>}
             </button>
-            {busy && stage && (
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                {[1, 2].map(n => (
-                  <div key={n} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: stage.num >= n ? "#7A52B5" : "var(--ink-faint)", fontWeight: stage.num === n ? 700 : 400 }}>
-                    <span style={{ width: 18, height: 18, borderRadius: "50%", background: stage.num > n ? "#7A52B5" : stage.num === n ? "#ede0fa" : "#f0f1f4", border: `1.5px solid ${stage.num >= n ? "#7A52B5" : "var(--line)"}`, color: stage.num > n ? "#fff" : "#7A52B5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, flexShrink: 0 }}>
-                      {stage.num > n ? <Icon name="check" size={9} /> : n}
-                    </span>
-                    {n === 1 ? "Strategize" : "Write"}
-                    {n < 2 && <span style={{ color: "var(--line)", margin: "0 2px" }}>›</span>}
-                  </div>
-                ))}
+            {busy && stage && stage.num > 1 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "#a85d00", background: "#fff3e0", border: "1px solid #f0cf9e", borderRadius: 20, padding: "2px 9px" }}>
+                Attempt {stage.num} of {GENERATION_TOKEN_BUDGETS.length}
               </div>
             )}
             {res && !busy && <button className="btn btn-sm btn-ghost" onClick={addAll}><Icon name="plus" size={13} /> Add all to ad</button>}
@@ -1931,7 +1945,7 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
 
                     {/* SOURCE */}
                     {res?._debug && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-faint)" }}>SOURCE:</span>
                         <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
                           background: res._debug.source === "openrouter-ai" ? "#e6f4ea" : "#fff8e1",
@@ -1941,110 +1955,86 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
                            res._debug.source === "fallback-ai-error" ? `Fallback — AI Error: ${res._debug.reason}` :
                            "Keyword Template"}
                         </span>
+                        {res._debug.source === "openrouter-ai" && res._debug.parsedVia && (
+                          <span style={{ fontSize: 10.5, fontWeight: 700, padding: "1px 7px", borderRadius: 4, background: "#eef2fb", color: "#1a3a7a" }}>
+                            parsed via: {res._debug.parsedVia}
+                          </span>
+                        )}
                       </div>
                     )}
 
-                    {/* ── FORENSICS (failure only) ── */}
-                    {res?._debug?.source === "fallback-ai-error" && res._debug.forensic && (() => {
-                      const f = res._debug.forensic;
-                      const rowStyle = { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 11 };
+                    {/* TOKEN USAGE (success path) */}
+                    {res?._debug?.source === "openrouter-ai" && res._debug.usage && (
+                      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11 }}>
+                        <span><span style={{ color: "var(--ink-faint)", fontWeight: 600 }}>prompt tokens:</span> {res._debug.usage.prompt_tokens ?? "—"}</span>
+                        <span><span style={{ color: "var(--ink-faint)", fontWeight: 600 }}>completion tokens:</span> {res._debug.usage.completion_tokens ?? "—"}</span>
+                        <span><span style={{ color: "var(--ink-faint)", fontWeight: 600 }}>total tokens:</span> {res._debug.usage.total_tokens ?? "—"}</span>
+                        <span><span style={{ color: "var(--ink-faint)", fontWeight: 600 }}>finish_reason:</span> {res._debug.finishReason || "—"}</span>
+                      </div>
+                    )}
+
+                    {/* ATTEMPTS LOG — every retry, success or failure, with full forensic detail per attempt */}
+                    {res?._debug?.attempts && res._debug.attempts.length > 0 && (() => {
                       const chipStyle = (ok) => ({ fontWeight: 700, padding: "1px 7px", borderRadius: 4, fontSize: 10.5,
                         background: ok ? "#e6f4ea" : "#fde8e8", color: ok ? "#1a5c2a" : "#7a1c1c" });
+                      const isFail = res._debug.source === "fallback-ai-error";
                       return (
                         <div style={{ display: "grid", gap: 10 }}>
-                          <div style={{ fontWeight: 700, color: "#7a1c1c", fontSize: 11.5, borderBottom: "1px solid #f5c6c6", paddingBottom: 6 }}>
-                            Forensic Trace — AI Failure
+                          <div style={{ fontWeight: 700, color: isFail ? "#7a1c1c" : "#1a5c2a", fontSize: 11.5, borderBottom: `1px solid ${isFail ? "#f5c6c6" : "#b0d8b0"}`, paddingBottom: 6 }}>
+                            {isFail ? "Forensic Trace — AI Failure" : "Generation Attempts"} ({res._debug.attempts.length} attempt{res._debug.attempts.length > 1 ? "s" : ""})
                           </div>
-
-                          {/* flags row */}
-                          <div style={rowStyle}>
-                            <span style={{ color: "var(--ink-faint)", fontWeight: 600 }}>finish_reason:</span>
-                            <span style={chipStyle(!f.wasTruncated)}>{f.finishReason || "(not set)"}</span>
-                            <span style={chipStyle(!f.wasTruncated)}>{f.wasTruncated ? "TRUNCATED BY TOKEN LIMIT" : "not truncated"}</span>
-                            <span style={{ color: "var(--ink-faint)", fontWeight: 600, marginLeft: 8 }}>markdown fences:</span>
-                            <span style={chipStyle(!f.hadFences)}>{f.hadFences ? "YES — fences present" : "none"}</span>
-                          </div>
-
-                          {/* raw API JSON */}
-                          <div>
-                            <div style={{ fontWeight: 600, color: "#7a1c1c", marginBottom: 3 }}>RAW AI RESPONSE — full OpenRouter API JSON</div>
-                            <pre style={{ ...preStyle, border: "1px solid #f5c6c6", background: "#fff8f8", maxHeight: 200 }}>
-                              {f.rawApiJson ? JSON.stringify(f.rawApiJson, null, 2) : "(callAI did not fire — error before API call)"}
-                            </pre>
-                          </div>
-
-                          {/* extracted content */}
-                          <div>
-                            <div style={{ fontWeight: 600, color: "#7a1c1c", marginBottom: 3 }}>EXTRACTED CONTENT — choices[0].message.content</div>
-                            <pre style={{ ...preStyle, border: "1px solid #f5c6c6", background: "#fff8f8" }}>
-                              {f.rawContent || "(empty — API returned no content)"}
-                            </pre>
-                          </div>
-
-                          {/* json candidate */}
-                          <div>
-                            <div style={{ fontWeight: 600, color: "#7a1c1c", marginBottom: 3 }}>JSON CANDIDATE — string passed to JSON.parse()</div>
-                            <pre style={{ ...preStyle, border: "1px solid #f5c6c6", background: "#fff8f8" }}>
-                              {f.jsonCandidate || "(empty — no &#123; found in content)"}
-                            </pre>
-                            {f.repairedJson && f.repairedJson !== f.jsonCandidate && (
-                              <div style={{ marginTop: 4 }}>
-                                <div style={{ fontWeight: 600, color: "#7a5c00", marginBottom: 2, fontSize: 10.5 }}>After repairJson():</div>
-                                <pre style={{ ...preStyle, border: "1px solid #f5e6c6", background: "#fffdf0" }}>{f.repairedJson}</pre>
+                          {res._debug.attempts.map((at, idx) => (
+                            <div key={idx} style={{ border: "1px solid #e0d9ff", borderRadius: 6, padding: "8px 10px", background: "#fff" }}>
+                              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 11, marginBottom: 6 }}>
+                                <span style={{ fontWeight: 700, color: "#5b3e86" }}>Attempt {idx + 1} · budget {at.budget} tokens</span>
+                                {at.error
+                                  ? <span style={chipStyle(false)}>request error</span>
+                                  : <>
+                                      <span style={chipStyle(!at.truncated)}>finish_reason: {at.finishReason || "(not set)"}</span>
+                                      {at.truncated && <span style={chipStyle(false)}>TRUNCATED BY TOKEN LIMIT</span>}
+                                      <span style={chipStyle(at.headlinesFound > 0)}>{at.headlinesFound} headlines / {at.descriptionsFound} descriptions found</span>
+                                      {at.parsedVia && <span style={{ fontSize: 10.5, fontWeight: 700, padding: "1px 7px", borderRadius: 4, background: "#eef2fb", color: "#1a3a7a" }}>via {at.parsedVia}</span>}
+                                    </>
+                                }
                               </div>
-                            )}
-                          </div>
 
-                          {/* parse error */}
-                          <div>
-                            <div style={{ fontWeight: 600, color: "#7a1c1c", marginBottom: 3 }}>PARSE RESULT</div>
-                            {f.parseError
-                              ? <div style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "#7a1c1c", background: "#fde8e8", border: "1px solid #f5c6c6", borderRadius: 4, padding: "6px 8px" }}>
-                                  {f.parseError.name}: {f.parseError.message}
+                              {at.error ? (
+                                <div style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "#7a1c1c", background: "#fde8e8", border: "1px solid #f5c6c6", borderRadius: 4, padding: "6px 8px" }}>{at.error}</div>
+                              ) : (
+                                <div style={{ display: "grid", gap: 6 }}>
+                                  {at.usage && (
+                                    <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 10.5, color: "var(--ink-faint)" }}>
+                                      <span>prompt: {at.usage.prompt_tokens ?? "—"}</span>
+                                      <span>completion: {at.usage.completion_tokens ?? "—"}</span>
+                                      <span>total: {at.usage.total_tokens ?? "—"}</span>
+                                    </div>
+                                  )}
+                                  <details>
+                                    <summary style={{ fontWeight: 600, color: "#5b3e86", fontSize: 10.5, cursor: "pointer", userSelect: "none" }}>RAW AI RESPONSE — full OpenRouter API JSON</summary>
+                                    <pre style={{ ...preStyle, marginTop: 4, maxHeight: 200 }}>{at.rawApiJson ? JSON.stringify(at.rawApiJson, null, 2) : "(no response)"}</pre>
+                                  </details>
+                                  <div>
+                                    <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 2, fontSize: 10.5 }}>EXTRACTED CONTENT — choices[0].message.content</div>
+                                    <pre style={preStyle}>{at.rawContent || "(empty — API returned no content)"}</pre>
+                                  </div>
+                                  {at.parseError && (
+                                    <div>
+                                      <div style={{ fontWeight: 600, color: "#7a1c1c", marginBottom: 2, fontSize: 10.5 }}>PARSE ERROR (JSON attempt)</div>
+                                      <div style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "#7a1c1c", background: "#fde8e8", border: "1px solid #f5c6c6", borderRadius: 4, padding: "6px 8px" }}>{at.parseError}</div>
+                                    </div>
+                                  )}
                                 </div>
-                              : <div style={{ ...chipStyle(false), display: "inline-block" }}>Error thrown before JSON.parse was reached</div>
-                            }
-                          </div>
-
-                          {/* stage 2 prompt */}
-                          {f.stage2Prompt && (
-                            <details>
-                              <summary style={{ fontWeight: 600, color: "#7a5c00", fontSize: 10.5, cursor: "pointer", userSelect: "none" }}>Stage 2 prompt sent to model (expand)</summary>
-                              <pre style={{ ...preStyle, marginTop: 4, maxHeight: 220 }}>{f.stage2Prompt}</pre>
-                            </details>
-                          )}
+                              )}
+                            </div>
+                          ))}
                         </div>
                       );
                     })()}
 
-                    {/* RAW OPENROUTER RESPONSE (success path) */}
-                    {res?._debug?.rawOpenRouterResponse && res._debug.source === "openrouter-ai" && (
+                    {/* PARSED OUTPUT (success path) */}
+                    {res?._debug?.source === "openrouter-ai" && (
                       <div>
-                        <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>1. Raw OpenRouter Response (full JSON)</div>
-                        <pre style={preStyle}>{JSON.stringify(res._debug.rawOpenRouterResponse, null, 2)}</pre>
-                      </div>
-                    )}
-
-                    {/* RAW CONTENT STRING */}
-                    {res?._debug?.rawContent && res._debug.source === "openrouter-ai" && (
-                      <div>
-                        <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>2. Extracted content string (choices[0].message.content)</div>
-                        <pre style={preStyle}>{res._debug.rawContent}</pre>
-                      </div>
-                    )}
-
-                    {/* STRIPPED JSON */}
-                    {res?._debug?.strippedJson && res._debug.source === "openrouter-ai" && (
-                      <div>
-                        <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>3. After stripping markdown fences + extracting &#123;…&#125;</div>
-                        <pre style={preStyle}>{res._debug.strippedJson}</pre>
-                      </div>
-                    )}
-
-                    {/* PARSED JSON */}
-                    {res?._debug?.parsedJson && (
-                      <div>
-                        <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>4. Parsed JSON object (stored in state as res)</div>
+                        <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>PARSED OUTPUT (stored in state as res)</div>
                         <pre style={preStyle}>{JSON.stringify({ headlines: res.headlines, descriptions: res.descriptions }, null, 2)}</pre>
                       </div>
                     )}
@@ -2086,10 +2076,14 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
                     )}
 
                     {/* PROMPT INSPECTOR */}
-                    {inspector?.stage1Prompt && (
+                    {inspector?.prompt && (
                       <details style={{ cursor: "pointer" }}>
-                        <summary style={{ fontWeight: 600, color: "#5b3e86", fontSize: 11, userSelect: "none" }}>Prompt Inspector (context + guardrails + both stage prompts)</summary>
+                        <summary style={{ fontWeight: 600, color: "#5b3e86", fontSize: 11, userSelect: "none" }}>Prompt Inspector (context + guardrails + the single merged prompt)</summary>
                         <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+                          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 10.5 }}>
+                            <span><span style={{ color: "var(--ink-faint)", fontWeight: 600 }}>provider:</span> {inspector.provider}</span>
+                            <span><span style={{ color: "var(--ink-faint)", fontWeight: 600 }}>model:</span> {inspector.model}</span>
+                          </div>
                           <div>
                             <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Context variables</div>
                             <div style={{ background: "#fff", border: "1px solid #e0d9ff", borderRadius: 4, padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 10, lineHeight: 1.8 }}>
@@ -2100,22 +2094,14 @@ function AIGenerator({ ctx, onAddHeadline, onAddDescription, defaultOpen = true 
                           </div>
                           {inspector.guardrailsBlock && (
                             <div>
-                              <div style={{ fontWeight: 600, color: "#1a5c2a", marginBottom: 3 }}>Product guardrails (injected into both prompts)</div>
+                              <div style={{ fontWeight: 600, color: "#1a5c2a", marginBottom: 3 }}>Product guardrails (injected once into the merged prompt)</div>
                               <pre style={{ ...preStyle, border: "1px solid #b0d8b0", background: "#f0fbf4" }}>{inspector.guardrailsBlock}</pre>
                             </div>
                           )}
                           <div>
-                            <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 1 prompt (strategy)</div>
-                            <pre style={preStyle}>{inspector.stage1Prompt}</pre>
+                            <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Merged prompt (single request — no duplicated stage context)</div>
+                            <pre style={preStyle}>{inspector.prompt}</pre>
                           </div>
-                          {inspector.stratSummary && <div>
-                            <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 1 output (strategy summary)</div>
-                            <pre style={preStyle}>{inspector.stratSummary}</pre>
-                          </div>}
-                          {inspector.stage2Prompt && <div>
-                            <div style={{ fontWeight: 600, color: "#5b3e86", marginBottom: 3 }}>Stage 2 prompt (copywriting)</div>
-                            <pre style={preStyle}>{inspector.stage2Prompt}</pre>
-                          </div>}
                         </div>
                       </details>
                     )}
