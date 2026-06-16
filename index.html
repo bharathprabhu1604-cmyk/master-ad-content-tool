@@ -1495,10 +1495,17 @@ function fallbackGenerate(brief, ctx) {
 
 function getAiKey() { return localStorage.getItem("lamf_ai_key") || ""; }
 function getAiProvider() { return localStorage.getItem("lamf_ai_provider") || "openrouter"; }
+// reasoning/"thinking" models burn their whole token budget on hidden chain-of-thought
+// and can return empty content for short structured-output tasks like ours — never select them
+const REASONING_MODEL_PATTERN = /(^|[\/\-_.])(r1|o1|o3|qwq|n2|think|reason|distill)([\/\-_.]|$)/i;
 function getAiModel() {
   const p = getAiProvider();
   const saved = localStorage.getItem("lamf_ai_model");
-  if (saved) return saved;
+  if (saved && p === "openrouter" && REASONING_MODEL_PATTERN.test(saved)) {
+    localStorage.removeItem("lamf_ai_model"); // self-heal: reasoning models return empty content for our short structured prompts
+  } else if (saved) {
+    return saved;
+  }
   if (p === "anthropic") return "claude-sonnet-4-6";
   if (p === "gemini") return "gemini-2.0-flash";
   if (p === "groq") return "llama-3.3-70b-versatile";
@@ -1528,6 +1535,7 @@ async function callAI(prompt, maxTokens, timeoutMs = 90000, onRaw) {
       const res = await fetch(endpoint, {
         method: "POST", signal: controller.signal, headers,
         body: JSON.stringify({ model, max_tokens: maxTokens, temperature: 0.8,
+          reasoning: { exclude: true }, // never let hidden chain-of-thought consume the output token budget
           messages: [{ role: "user", content: prompt }] }),
       });
       if (!res.ok) {
@@ -2238,7 +2246,7 @@ function KeywordsEditor({ keywords, match, onChange, onMatch, compact }) {
   );
 }
 
-Object.assign(window, { AIGenerator, aiGenerate, fallbackGenerate, parseBriefCounts, pickedItems, PreviewControls, KeywordsEditor, getAiKey, getAiModel, getAiProvider, callAI });
+Object.assign(window, { AIGenerator, aiGenerate, fallbackGenerate, parseBriefCounts, pickedItems, PreviewControls, KeywordsEditor, getAiKey, getAiModel, getAiProvider, callAI, REASONING_MODEL_PATTERN });
 
 </script>
 
@@ -3984,15 +3992,7 @@ function AISettingsCard() {
   const toast = useToast();
   const [provider, setProvider] = React.useState(() => localStorage.getItem("lamf_ai_provider") || "openrouter");
   const [key, setKey] = React.useState(() => localStorage.getItem("lamf_ai_key") || "");
-  const [model, setModel] = React.useState(() => {
-    const saved = localStorage.getItem("lamf_ai_model");
-    if (saved) return saved;
-    const p = localStorage.getItem("lamf_ai_provider") || "openrouter";
-    if (p === "anthropic") return "claude-sonnet-4-6";
-    if (p === "gemini") return "gemini-2.0-flash";
-    if (p === "groq") return "llama-3.3-70b-versatile";
-    return "deepseek/deepseek-chat-v3-0324:free";
-  });
+  const [model, setModel] = React.useState(() => getAiModel());
   const [testing, setTesting] = React.useState(false);
   const [show, setShow] = React.useState(false);
   const [diag, setDiag] = React.useState(null);
@@ -4041,7 +4041,9 @@ function AISettingsCard() {
           // Fetch live free models from OpenRouter
           const mRes = await fetch("https://openrouter.ai/api/v1/models", { headers: { "Authorization": `Bearer ${k}` } });
           const mJson = await mRes.json().catch(() => ({ data: [] }));
-          const freeIds = (mJson.data || []).filter(m => m.id.endsWith(":free")).map(m => m.id);
+          // exclude reasoning/"thinking" models — they burn the token budget on hidden chain-of-thought
+          // and return empty content for short structured-output tasks like ours
+          const freeIds = (mJson.data || []).filter(m => m.id.endsWith(":free") && !REASONING_MODEL_PATTERN.test(m.id)).map(m => m.id);
           d.freeModelsCount = freeIds.length;
           d.freeModelsList = freeIds.slice(0, 15);
           // Try fallbacks (skip the one that already failed)
